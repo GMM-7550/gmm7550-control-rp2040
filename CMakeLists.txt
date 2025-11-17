@@ -25,6 +25,7 @@ add_subdirectory(${FREERTOS_KERNEL_PATH})
 
 add_executable(${TARGET_NAME}
     src/main.c
+    src/uart.c
     )
 
 target_compile_definitions(${TARGET_NAME} PRIVATE

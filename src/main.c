@@ -11,6 +11,8 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
+#include "uart.h"
+
 void blink_task(__unused void *params)
 {
   int on = 1;
@@ -33,6 +35,13 @@ int main(void)
               (tskIDLE_PRIORITY + 1UL), /* priority */
               NULL                      /* */
               );
+  xTaskCreate(uart_task, "UART",
+              configMINIMAL_STACK_SIZE,
+              NULL,
+              (tskIDLE_PRIORITY + 1UL),
+              NULL
+              );
+
   vTaskStartScheduler();
   return 0;
 }
