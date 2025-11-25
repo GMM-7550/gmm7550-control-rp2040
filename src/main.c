@@ -11,7 +11,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-#include "uart.h"
+#include "serial.h"
 
 void blink_task(__unused void *params)
 {
@@ -35,7 +35,7 @@ int main(void)
               (tskIDLE_PRIORITY + 1UL), /* priority */
               NULL                      /* */
               );
-  xTaskCreate(uart_task, "UART",
+  xTaskCreate(serial_task, "UART",
               configMINIMAL_STACK_SIZE,
               NULL,
               (tskIDLE_PRIORITY + 1UL),

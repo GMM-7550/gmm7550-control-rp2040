@@ -4,12 +4,12 @@
 #include "task.h"
 #include "queue.h"
 
-#include "uart.h"
+#include "serial.h"
 
 static uart_inst_t *uart = UART_INSTANCE(GMM7550_UART);
 static QueueHandle_t rxQueue, txQueue;
 
-void uart_rx_task()
+void serial_rx_task()
 {
   char c;
   while(1) {
@@ -20,7 +20,7 @@ void uart_rx_task()
   }
 }
 
-void uart_tx_task()
+void serial_tx_task()
 {
   BaseType_t ret;
   char c;
@@ -32,7 +32,7 @@ void uart_tx_task()
   }
 }
 
-void uart_task(__unused void *params)
+void serial_task(__unused void *params)
 {
   BaseType_t ret;
 
@@ -51,14 +51,14 @@ void uart_task(__unused void *params)
   rxQueue = xQueueCreate(16, sizeof(char));
   txQueue = xQueueCreate(16, sizeof(char));
 
-  xTaskCreate(uart_rx_task, "UART Rx",
+  xTaskCreate(serial_rx_task, "UART Rx",
               configMINIMAL_STACK_SIZE, /* stack size */
               NULL,                     /* */
               (tskIDLE_PRIORITY + 1UL), /* priority */
               NULL                      /* */
               );
 
-  xTaskCreate(uart_tx_task, "UART Tx",
+  xTaskCreate(serial_tx_task, "UART Tx",
               configMINIMAL_STACK_SIZE, /* stack size */
               NULL,                     /* */
               (tskIDLE_PRIORITY + 1UL), /* priority */
