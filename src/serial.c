@@ -15,7 +15,7 @@ void serial_rx_task()
   while(1) {
     if(uart_is_readable(uart)) {
       c = uart_getc(uart);
-      (void) xQueueSend(serial_rxQueue, (void *) &c, 0);
+      // (void) xQueueSend(serial_rxQueue, (void *) &c, 0);
     }
   }
 }
@@ -48,11 +48,6 @@ void serial_init(__unused void *params)
 
   serial_rxQueue = xQueueCreate(16, sizeof(char));
   serial_txQueue = xQueueCreate(16, sizeof(char));
-}
-
-void serial_task(__unused void *params)
-{
-  BaseType_t ret;
 
   xTaskCreate(serial_rx_task, "UART Rx",
               configMINIMAL_STACK_SIZE, /* stack size */
@@ -67,12 +62,4 @@ void serial_task(__unused void *params)
               (tskIDLE_PRIORITY + 1UL), /* priority */
               NULL                      /* */
               );
-
-  while(1) {
-    char c;
-    ret = xQueueReceive(serial_rxQueue, (void *) &c, 0);
-    if (pdPASS == ret) {
-      xQueueSend(serial_txQueue, (void *) &c, 0);
-    }
-  }
 }

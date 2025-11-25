@@ -25,6 +25,9 @@ void usb_task(__unused void *params)
         uint8_t buf[64];
         uint32_t count = tud_cdc_read(buf, sizeof(buf));
         tud_cdc_write(buf, count);
+        for(int i=0; i<count; i++) {
+          (void) xQueueSend(serial_txQueue, (void *) &buf[i], 0);
+        }
       }
       tud_cdc_write_flush();
     }
