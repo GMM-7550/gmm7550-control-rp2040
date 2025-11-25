@@ -7,7 +7,7 @@
 #include "serial.h"
 
 static uart_inst_t *uart = UART_INSTANCE(GMM7550_UART);
-static QueueHandle_t rxQueue, txQueue;
+QueueHandle_t serial_rxQueue, serial_txQueue;
 
 void serial_rx_task()
 {
@@ -15,7 +15,7 @@ void serial_rx_task()
   while(1) {
     if(uart_is_readable(uart)) {
       c = uart_getc(uart);
-      (void) xQueueSend(rxQueue, (void *) &c, 0);
+      (void) xQueueSend(serial_rxQueue, (void *) &c, 0);
     }
   }
 }
@@ -25,7 +25,7 @@ void serial_tx_task()
   BaseType_t ret;
   char c;
   while(1) {
-    ret = xQueueReceive(txQueue, (void *) &c, 0);
+    ret = xQueueReceive(serial_txQueue, (void *) &c, 0);
     if (pdPASS == ret) {
       uart_putc(uart, c);
     }
@@ -46,8 +46,8 @@ void serial_init(__unused void *params)
   uart_set_translate_crlf(uart, true);
   */
 
-  rxQueue = xQueueCreate(16, sizeof(char));
-  txQueue = xQueueCreate(16, sizeof(char));
+  serial_rxQueue = xQueueCreate(16, sizeof(char));
+  serial_txQueue = xQueueCreate(16, sizeof(char));
 }
 
 void serial_task(__unused void *params)
@@ -70,9 +70,9 @@ void serial_task(__unused void *params)
 
   while(1) {
     char c;
-    ret = xQueueReceive(rxQueue, (void *) &c, 0);
+    ret = xQueueReceive(serial_rxQueue, (void *) &c, 0);
     if (pdPASS == ret) {
-      xQueueSend(txQueue, (void *) &c, 0);
+      xQueueSend(serial_txQueue, (void *) &c, 0);
     }
   }
 }

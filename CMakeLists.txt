@@ -46,6 +46,8 @@ target_compile_definitions(tinyusb PRIVATE
 add_executable(${TARGET_NAME}
     src/main.c
     src/serial.c
+    src/usb.c
+    src/usb_descriptors.c
     )
 
 target_compile_definitions(${TARGET_NAME} PRIVATE

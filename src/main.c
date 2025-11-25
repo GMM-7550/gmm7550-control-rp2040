@@ -12,23 +12,31 @@
 #include "task.h"
 
 #include "serial.h"
+#include "usb.h"
+
+static uint32_t blink_interval;
+
+void set_blink_interval_ms(uint32_t ms)
+{
+  blink_interval = ms / portTICK_PERIOD_MS;
+}
 
 void blink_task(__unused void *params)
 {
-  int on = 1;
-
   gpio_init(GREEN_LED_PIN);
   gpio_set_dir(GREEN_LED_PIN, GPIO_OUT);
 
   while(1) {
-    gpio_put(GREEN_LED_PIN, on);
-    on = 1 - on;
-    sleep_ms(500);
+    gpio_put(GREEN_LED_PIN, 1);
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+    gpio_put(GREEN_LED_PIN, 0);
+    vTaskDelay(blink_interval);
   }
 }
 
 int main(void)
 {
+  set_blink_interval_ms(1900);
   serial_init(NULL);
 
   xTaskCreate(blink_task, "Blink",
@@ -37,10 +45,17 @@ int main(void)
               (tskIDLE_PRIORITY + 1UL), /* priority */
               NULL                      /* */
               );
+
   xTaskCreate(serial_task, "UART",
               configMINIMAL_STACK_SIZE,
               NULL,
               (tskIDLE_PRIORITY + 1UL),
+              NULL
+              );
+  xTaskCreate(usb_task, "USB",
+              configMINIMAL_STACK_SIZE,
+              NULL,
+              (tskIDLE_PRIORITY + 2UL),
               NULL
               );
 
