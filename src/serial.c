@@ -15,7 +15,7 @@ void serial_rx_task()
   while(1) {
     if(uart_is_readable(uart)) {
       c = uart_getc(uart);
-      // (void) xQueueSend(serial_rxQueue, (void *) &c, 0);
+      (void) xQueueSend(serial_rxQueue, (void *) &c, 0);
     }
   }
 }
