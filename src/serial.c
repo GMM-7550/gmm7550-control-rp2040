@@ -32,10 +32,8 @@ void serial_tx_task()
   }
 }
 
-void serial_task(__unused void *params)
+void serial_init(__unused void *params)
 {
-  BaseType_t ret;
-
   gpio_set_function(GMM7550_UART_TX_PIN,
                     UART_FUNCSEL_NUM(uart, GMM7550_UART_TX_PIN));
 
@@ -50,6 +48,11 @@ void serial_task(__unused void *params)
 
   rxQueue = xQueueCreate(16, sizeof(char));
   txQueue = xQueueCreate(16, sizeof(char));
+}
+
+void serial_task(__unused void *params)
+{
+  BaseType_t ret;
 
   xTaskCreate(serial_rx_task, "UART Rx",
               configMINIMAL_STACK_SIZE, /* stack size */

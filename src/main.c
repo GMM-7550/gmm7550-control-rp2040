@@ -29,6 +29,8 @@ void blink_task(__unused void *params)
 
 int main(void)
 {
+  serial_init(NULL);
+
   xTaskCreate(blink_task, "Blink",
               configMINIMAL_STACK_SIZE, /* stack size */
               NULL,                     /* */
