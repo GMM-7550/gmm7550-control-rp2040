@@ -151,7 +151,7 @@ to exclude the API function. */
 #endif
 
 /* FreeRTOS+CLI */
-#define configCOMMAND_INT_MAX_OUTPUT_SIZE       80
+#define configCOMMAND_INT_MAX_OUTPUT_SIZE       200
 
 /* A header file that defines trace macro can be included here. */
 

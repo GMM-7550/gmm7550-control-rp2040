@@ -48,6 +48,7 @@ static BaseType_t cli_gmm7550_on(char *pcWriteBuffer,
                                  const char *pcCmd)
 {
   gmm7550_on();
+  vTaskDelay(100 / portTICK_PERIOD_MS);
   gmm7550_hreset(0);
 
   *pcWriteBuffer = '\0';
@@ -56,11 +57,10 @@ static BaseType_t cli_gmm7550_on(char *pcWriteBuffer,
 
 static const CLI_Command_Definition_t on_cmd = {
   "on",
-  "on\n  Turn the GMM-7550 module ON",
+  "on\n  Turn the GMM-7550 module ON\n\n",
   cli_gmm7550_on,
   0
 };
-
 
 static BaseType_t cli_gmm7550_off(char *pcWriteBuffer,
                                   size_t xWriteBufferLen,
@@ -75,9 +75,26 @@ static BaseType_t cli_gmm7550_off(char *pcWriteBuffer,
 
 static const CLI_Command_Definition_t off_cmd = {
   "off",
-  "off\n  Turn the GMM-7550 module OFF",
+  "off\n  Turn the GMM-7550 module OFF\n\n",
   cli_gmm7550_off,
   0
+};
+
+static BaseType_t cli_gmm7550_rst(char *pcWriteBuffer,
+                                  size_t xWriteBufferLen,
+                                  const char *pcCmd)
+{
+  gmm7550_hreset(2);
+
+  *pcWriteBuffer = '\0';
+  return pdFALSE;
+}
+
+static const CLI_Command_Definition_t rst_cmd = {
+  "rst",
+  "rst 0|1|2\n  Hard reset GMM-7550 module\n  0 - reset off\n  1 - reset on\n  2 - reset pulse\n\n",
+  cli_gmm7550_rst,
+  1
 };
 
 void cli_register_gpio(void)
@@ -86,4 +103,5 @@ void cli_register_gpio(void)
 
   FreeRTOS_CLIRegisterCommand(&on_cmd);
   FreeRTOS_CLIRegisterCommand(&off_cmd);
+  FreeRTOS_CLIRegisterCommand(&rst_cmd);
 }
