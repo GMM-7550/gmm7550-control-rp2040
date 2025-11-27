@@ -20,11 +20,14 @@ void cli_task(__unused void *params)
 
   while(1) {
     if (tud_cdc_n_connected(1)) {
+      set_blink_interval_ms(BLINK_INTERVAL_CLI_CONNECTED);
       while (tud_cdc_n_available(1)) {
         count = tud_cdc_n_read(1, buf, sizeof(buf));
         tud_cdc_n_write(1, buf, count);
       }
       tud_cdc_n_write_flush(1);
+    } else {
+      set_blink_interval_ms(BLINK_INTERVAL_DEFAULT);
     }
     vTaskDelay(1);
   }

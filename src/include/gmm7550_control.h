@@ -13,8 +13,17 @@
 #define GMM7550_UART_TX_PIN 12
 #define GMM7550_UART_RX_PIN 13
 
+/* main.c */
+#define BLINK_ON_TIME 100
+#define BLINK_INTERVAL_DEFAULT 1900
+#define BLINK_INTERVAL_CLI_CONNECTED 900
+
+extern void set_blink_interval_ms(uint32_t ms);
+
+/* serial.c */
 #include "queue.h"
 extern QueueHandle_t serial_rxQueue, serial_txQueue;
 extern void serial_init(__unused void *params);
 
+/* usb.c */
 extern void usb_task(__unused void *params);

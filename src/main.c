@@ -27,7 +27,7 @@ void blink_task(__unused void *params)
 
   while(1) {
     gpio_put(GREEN_LED_PIN, 1);
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    vTaskDelay(BLINK_ON_TIME / portTICK_PERIOD_MS);
     gpio_put(GREEN_LED_PIN, 0);
     vTaskDelay(blink_interval);
   }
@@ -35,7 +35,7 @@ void blink_task(__unused void *params)
 
 int main(void)
 {
-  set_blink_interval_ms(1900);
+  set_blink_interval_ms(BLINK_INTERVAL_DEFAULT);
   serial_init(NULL);
 
   xTaskCreate(blink_task, "Blink",
