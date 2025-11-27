@@ -13,26 +13,6 @@ static void usb_init(__unused void *params)
   tusb_init(0, &dev_init);
 }
 
-void cli_task(__unused void *params)
-{
-  uint8_t buf[64];
-  uint32_t count;
-
-  while(1) {
-    if (tud_cdc_n_connected(1)) {
-      set_blink_interval_ms(BLINK_INTERVAL_CLI_CONNECTED);
-      while (tud_cdc_n_available(1)) {
-        count = tud_cdc_n_read(1, buf, sizeof(buf));
-        tud_cdc_n_write(1, buf, count);
-      }
-      tud_cdc_n_write_flush(1);
-    } else {
-      set_blink_interval_ms(BLINK_INTERVAL_DEFAULT);
-    }
-    vTaskDelay(1);
-  }
-}
-
 void usb_task(__unused void *params)
 {
   usb_init(NULL);
@@ -48,9 +28,9 @@ void usb_task(__unused void *params)
     uint8_t buf[64];
     uint32_t count;
     tud_task();
-    if (tud_cdc_n_connected(0)) {
-      while (tud_cdc_n_available(0)) {
-        count = tud_cdc_n_read(0, buf, sizeof(buf));
+    if (tud_cdc_n_connected(CDC_SERIAL)) {
+      while (tud_cdc_n_available(CDC_SERIAL)) {
+        count = tud_cdc_n_read(CDC_SERIAL, buf, sizeof(buf));
         for(int i=0; i<count; i++) {
           (void) xQueueSend(serial_txQueue, (void *) &buf[i], 0);
         }
@@ -59,9 +39,9 @@ void usb_task(__unused void *params)
         for (int i=0; i<count; i++) {
           (void) xQueueReceive(serial_rxQueue, (void *) &buf[i], 0);
         }
-        tud_cdc_n_write(0, buf, count);
+        tud_cdc_n_write(CDC_SERIAL, buf, count);
       }
-      tud_cdc_n_write_flush(0);
+      tud_cdc_n_write_flush(CDC_SERIAL);
     }
     vTaskDelay(1);
   }

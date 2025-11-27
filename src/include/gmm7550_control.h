@@ -23,7 +23,13 @@ extern void set_blink_interval_ms(uint32_t ms);
 /* serial.c */
 #include "queue.h"
 extern QueueHandle_t serial_rxQueue, serial_txQueue;
-extern void serial_init(__unused void *params);
+extern void serial_init(void *params);
 
 /* usb.c */
-extern void usb_task(__unused void *params);
+#define CDC_SERIAL 0
+#define CDC_CLI    1
+
+extern void usb_task(void *params);
+
+/* cli.c */
+extern void cli_task(void *params);

@@ -48,6 +48,7 @@ add_executable(${TARGET_NAME}
     src/serial.c
     src/usb.c
     src/usb_descriptors.c
+    src/cli.c
     )
 
 target_compile_definitions(${TARGET_NAME} PRIVATE
