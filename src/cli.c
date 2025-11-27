@@ -2,27 +2,34 @@
 #include "gmm7550_control.h"
 #include "tusb.h"
 
-#define CMD_MAX_SIZE 10
+#define CMD_MAX_SIZE 40
+
+#include "FreeRTOS_CLI.h"
+
+static bool was_disconnected;
 
 static inline uint8_t cdc_getc(const uint cdc)
 {
   uint8_t c;
-  while(!tud_cdc_n_available(cdc)) {
+  while(1) {
     if (tud_cdc_n_connected(cdc)) {
       set_blink_interval_ms(BLINK_INTERVAL_CLI_CONNECTED);
+      if (tud_cdc_n_available(cdc)) {
+        tud_cdc_n_read(cdc, &c, 1);
+        return c;
+      }
     } else {
       set_blink_interval_ms(BLINK_INTERVAL_DEFAULT);
+      was_disconnected = true;
     }
     vTaskDelay(1);
   }
-  tud_cdc_n_read(cdc, &c, 1);
-  return c;
 }
 
 static inline void cdc_putc(const uint cdc, const uint8_t c)
 {
-  uint8_t b = c;
-  tud_cdc_n_write(cdc, &b, 1);
+  while(!tud_cdc_n_write_available(cdc)) vTaskDelay(1);
+  tud_cdc_n_write_char(cdc, c);
   tud_cdc_n_write_flush(cdc);
 }
 
@@ -58,7 +65,9 @@ static uint8_t *cdc_get_line(const uint cdc)
     }
   }
   *p = '\0';
-  return cmd;
+  p = cmd;
+  while(*p && (*p == ' ')) p++; /* skip leading spaces */
+  return p;
 }
 
 #define getc()  cdc_getc(CDC_CLI)
@@ -68,15 +77,29 @@ static uint8_t *cdc_get_line(const uint cdc)
 
 void process_command(const uint8_t* cmd)
 {
+  BaseType_t ret;
+  uint8_t *out = FreeRTOS_CLIGetOutputBuffer();
+
+  do {
+    ret = FreeRTOS_CLIProcessCommand(cmd, out,
+                                     configCOMMAND_INT_MAX_OUTPUT_SIZE);
+    puts(out);
+  } while(pdTRUE == ret);
 }
 
 void cli_task(__unused void *params)
 {
   uint8_t *l;
+  was_disconnected = true;
+
   while(1) {
+    if (was_disconnected) {
+      puts("\nGMM-7550 Control CLI");
+      was_disconnected = false;
+    }
     puts("\n> ");
     l = get_line();
-    puts("\n- ");
-    puts(l);
-   }
+    puts("\n");
+    if (!was_disconnected && l) process_command(l);
+  }
 }

@@ -49,7 +49,12 @@ add_executable(${TARGET_NAME}
     src/usb.c
     src/usb_descriptors.c
     src/cli.c
+    freertos-plus-cli/FreeRTOS_CLI.c
     )
+
+target_include_directories(${TARGET_NAME} PRIVATE
+   freertos-plus-cli
+)
 
 target_compile_definitions(${TARGET_NAME} PRIVATE
     configNUMBER_OF_CORES=1

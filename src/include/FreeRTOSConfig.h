@@ -150,6 +150,9 @@ to exclude the API function. */
 #define configMAX_SYSCALL_INTERRUPT_PRIORITY    16
 #endif
 
+/* FreeRTOS+CLI */
+#define configCOMMAND_INT_MAX_OUTPUT_SIZE       80
+
 /* A header file that defines trace macro can be included here. */
 
 #endif /* FREERTOS_CONFIG_H */
