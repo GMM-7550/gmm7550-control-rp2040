@@ -11,8 +11,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-#include "serial.h"
-#include "usb.h"
+#include "gmm7550_control.h"
 
 static uint32_t blink_interval;
 

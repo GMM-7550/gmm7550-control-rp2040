@@ -4,7 +4,7 @@
 #include "task.h"
 #include "queue.h"
 
-#include "serial.h"
+#include "gmm7550_control.h"
 
 static uart_inst_t *uart = UART_INSTANCE(GMM7550_UART);
 QueueHandle_t serial_rxQueue, serial_txQueue;
