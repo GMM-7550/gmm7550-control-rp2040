@@ -33,3 +33,11 @@ extern void usb_task(void *params);
 
 /* cli.c */
 extern void cli_task(void *params);
+
+/* gpio.c */
+#define GMM7550_MR_PIN     15
+#define GMM7550_EN_PIN      1
+#define GMM7550_OFF_PIN    14
+
+#define GMM7550_MR_TIME_MS 10
+extern void cli_register_gpio(void);

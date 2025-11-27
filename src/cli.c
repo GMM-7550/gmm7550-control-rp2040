@@ -92,6 +92,8 @@ void cli_task(__unused void *params)
   uint8_t *l;
   was_disconnected = true;
 
+  cli_register_gpio();
+
   while(1) {
     if (was_disconnected) {
       puts("\nGMM-7550 Control CLI");

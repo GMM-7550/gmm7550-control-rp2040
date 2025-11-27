@@ -49,6 +49,7 @@ add_executable(${TARGET_NAME}
     src/usb.c
     src/usb_descriptors.c
     src/cli.c
+    src/gpio.c
     freertos-plus-cli/FreeRTOS_CLI.c
     )
 
