@@ -106,7 +106,7 @@ static BaseType_t cli_gmm7550_hrst(char *pcWriteBuffer,
 
 static const CLI_Command_Definition_t hrst_cmd = {
   "hrst",
-  "hrst [0|1]\n  Hard reset GMM-7550 module\n  no argument - reset pulse\n  0 - de-assert reset off\n  1 - assert reset\n\n",
+  "hrst [0|1]\n  Hard reset GMM-7550 module\n  no argument - reset pulse\n  0 - de-assert reset\n  1 - assert reset\n\n",
   cli_gmm7550_hrst,
   -1
 };
