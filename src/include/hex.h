@@ -19,3 +19,15 @@ inline uint8_t char2hex(const char c)
   }
   return 0;
 }
+
+inline bool is_hex_digit(const char c)
+{
+  if        (('0' <= c) && (c <= '9')) {
+    return  true;
+  } else if (('a' <= c) && (c <= 'f')) {
+    return  true;
+  } else if (('A' <= c) && (c <= 'F')) {
+    return  true;
+  }
+  return false;
+}

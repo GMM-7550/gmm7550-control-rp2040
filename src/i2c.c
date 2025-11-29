@@ -153,7 +153,6 @@ static BaseType_t cli_pca(char *pcWriteBuffer,
     *p++ = '\n';
     *p++ = '\0';
     if (line == 8) {
-      gmm7550_i2c_gpio_init();
       line = 0;
       return pdFALSE;
     } else {
@@ -170,9 +169,158 @@ static const CLI_Command_Definition_t pca_cmd = {
   0
 };
 
+static void gmm7550_sreset(uint rst)
+{
+  uint8_t data;
+
+  if (!i2c_gpio_initialized) {gmm7550_i2c_gpio_init();}
+
+  switch (rst) {
+  case 0:  /* deassert */
+    data = pca_read_reg(2);
+    data |= 0x01;
+    pca_write_reg(2, data);
+    break;
+  case 1:  /* assert */
+    data = pca_read_reg(2);
+    data &= ~0x01;
+    pca_write_reg(2, data);
+    break;
+  default: /* pulse */
+    data = pca_read_reg(2);
+    pca_write_reg(2, data & ~0x01);
+    vTaskDelay(GMM7550_MR_TIME_MS / portTICK_PERIOD_MS);
+    pca_write_reg(2, data |  0x01);
+  }
+}
+
+static BaseType_t cli_mux(char *pcWriteBuffer,
+                          size_t xWriteBufferLen,
+                          const char *pcCmd)
+{
+  BaseType_t p_len;
+  uint8_t srst;
+  uint8_t mux;
+  uint8_t data;
+
+  char *p = (char *)FreeRTOS_CLIGetParameter(pcCmd, 1, &p_len);
+
+  if (p && (p_len == 1) && is_hex_digit(*p)) {
+
+    mux = char2hex(*p);
+
+    if (!i2c_gpio_initialized) {gmm7550_i2c_gpio_init();}
+
+    /* save state of the reset signal */
+    srst = pca_read_reg(2) & 0x01; /* output port 0 bit 0 */
+
+    gmm7550_sreset(1); /* assert reset signal to the FPGA */
+
+    data = pca_read_reg(3); /* output port 1 */
+    data &= 0x0f; /* keep configuration mode settings */
+    data |= mux << 4;
+    pca_write_reg(3, data);
+
+    data = pca_read_reg(2); /* reset bit is known to be 0 (reset active) at this point */
+    data |= srst;           /* restore reset state */
+    pca_write_reg(2, data);
+
+    *pcWriteBuffer = '\0';
+  } else {
+    strncpy(pcWriteBuffer, "Error: argument should be a single hex digit (0..f|0..F)\n", xWriteBufferLen);
+  }
+  return pdFALSE;
+}
+
+static const CLI_Command_Definition_t mux_cmd = {
+  "mux",
+  "mux n\n  Set SPI multiplexors. Useful settings:\n    1 -- FPGA SPI\n    2 -- NOR FLASH\n    4 -- UART (SPI D2/D3)\n\n",
+  cli_mux,
+  1
+};
+
+static BaseType_t cli_cfg(char *pcWriteBuffer,
+                          size_t xWriteBufferLen,
+                          const char *pcCmd)
+{
+  BaseType_t p_len;
+  uint8_t srst;
+  uint8_t cfg;
+  uint8_t data;
+
+  char *p = (char *)FreeRTOS_CLIGetParameter(pcCmd, 1, &p_len);
+
+  if (p && (p_len == 1) && is_hex_digit(*p)) {
+
+    cfg = char2hex(*p);
+
+    if (!i2c_gpio_initialized) {gmm7550_i2c_gpio_init();}
+
+    /* save state of the reset signal */
+    srst = pca_read_reg(2) & 0x01; /* output port 0 bit 0 */
+
+    gmm7550_sreset(1); /* assert reset signal to the FPGA */
+
+    data = pca_read_reg(3); /* output port 1 */
+    data &= 0xf0; /* keep SPI multiplexor settings */
+    data |= cfg;
+    pca_write_reg(3, data);
+
+    data = pca_read_reg(2); /* reset bit is known to be 0 (reset active) at this point */
+    data |= srst;           /* restore reset state */
+    pca_write_reg(2, data);
+
+    *pcWriteBuffer = '\0';
+  } else {
+    strncpy(pcWriteBuffer, "Error: argument should be a single hex digit (0..f|0..F)\n", xWriteBufferLen);
+  }
+  return pdFALSE;
+}
+
+static const CLI_Command_Definition_t cfg_cmd = {
+  "cfg",
+  "cfg n\n  Set Configuration mode. Useful settings:\n    0 -- SPI Active\n    4 -- SPI Passive\n    c -- JTAG\n\n",
+  cli_cfg,
+  1
+};
+
+static BaseType_t cli_gmm7550_rst(char *pcWriteBuffer,
+                                  size_t xWriteBufferLen,
+                                  const char *pcCmd)
+{
+  char *p;
+  BaseType_t p_len, ret;
+
+  p = (char *)FreeRTOS_CLIGetParameter(pcCmd, 1, &p_len);
+  if (p) {
+    if (p_len == 1) {
+      if (*p == '0') {
+        gmm7550_sreset(0);
+      } else if (*p == '1') {
+        gmm7550_sreset(1);
+      }
+    }
+  } else {
+    gmm7550_sreset(2);
+  }
+
+  *pcWriteBuffer = '\0';
+  return pdFALSE;
+}
+
+static const CLI_Command_Definition_t rst_cmd = {
+  "rst",
+  "rst [0|1]\n  Soft reset GMM-7550 module\n  no argument - reset pulse\n  0 - de-assert reset\n  1 - assert reset\n\n",
+  cli_gmm7550_rst,
+  -1
+};
+
 void cli_register_i2c(void)
 {
   gmm7550_i2c_init();
   FreeRTOS_CLIRegisterCommand(&scan_cmd);
   FreeRTOS_CLIRegisterCommand(&pca_cmd);
+  FreeRTOS_CLIRegisterCommand(&mux_cmd);
+  FreeRTOS_CLIRegisterCommand(&cfg_cmd);
+  FreeRTOS_CLIRegisterCommand(&rst_cmd);
 }
