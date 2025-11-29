@@ -93,6 +93,7 @@ void cli_task(__unused void *params)
   was_disconnected = true;
 
   cli_register_gpio();
+  cli_register_i2c();
 
   while(1) {
     if (was_disconnected) {

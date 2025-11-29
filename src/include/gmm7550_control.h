@@ -41,3 +41,9 @@ extern void cli_task(void *params);
 
 #define GMM7550_MR_TIME_MS 10
 extern void cli_register_gpio(void);
+
+/* i2c.c */
+#define GMM7550_I2C         1
+#define GMM7550_I2C_SDA_PIN 2
+#define GMM7550_I2C_SCL_PIN 3
+extern void cli_register_i2c(void);

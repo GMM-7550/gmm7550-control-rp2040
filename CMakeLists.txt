@@ -50,6 +50,7 @@ add_executable(${TARGET_NAME}
     src/usb_descriptors.c
     src/cli.c
     src/gpio.c
+    src/i2c.c
     freertos-plus-cli/FreeRTOS_CLI.c
     )
 
@@ -63,6 +64,7 @@ target_compile_definitions(${TARGET_NAME} PRIVATE
 
 target_link_libraries(${TARGET_NAME} PRIVATE
     pico_stdlib
+    hardware_i2c
     freertos_kernel
     tinyusb
     tinyusb_bsp
