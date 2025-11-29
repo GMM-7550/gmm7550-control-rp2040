@@ -37,7 +37,7 @@ static BaseType_t cli_i2c_scan(char *pcWriteBuffer,
     *p++ = ' ';
     for (int i=0; i<0x10; i++) {
       addr = (((line-1) << 4) + i);
-      if (i2c_read_blocking(i2c, addr, &byte, 1, false) < 0) {
+      if (i2c_write_blocking(i2c, addr, &byte, 1, false) < 0) {
         *p++ = '-';
         *p++ = '-';
       } else {
