@@ -231,6 +231,7 @@ static BaseType_t cli_mux(char *pcWriteBuffer,
       gmm7550_sreset(1);      /* assert reset signal to the FPGA */
 
       pca_write_reg(3, data); /* set new SPI Mux/Configuration Mode */
+      vTaskDelay(GMM7550_MR_TIME_MS / portTICK_PERIOD_MS);
 
       data = pca_read_reg(2); /* reset bit is known to be 0 (reset active) at this point */
       data |= srst;           /* restore reset state */
@@ -282,6 +283,7 @@ static BaseType_t cli_cfg(char *pcWriteBuffer,
       gmm7550_sreset(1);      /* assert reset signal to the FPGA */
 
       pca_write_reg(3, data); /* set new SPI Mux/Configuration Mode */
+      vTaskDelay(GMM7550_MR_TIME_MS / portTICK_PERIOD_MS);
 
       data = pca_read_reg(2); /* reset bit is known to be 0 (reset active) at this point */
       data |= srst;           /* restore reset state */
