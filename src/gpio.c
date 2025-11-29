@@ -25,6 +25,7 @@ static void gmm7550_on(void)
 static void gmm7550_off(void)
 {
   gpio_put(GMM7550_EN_PIN, 0);
+  i2c_gpio_initialized = false;
 }
 
 static void gmm7550_hreset(uint rst)
@@ -35,9 +36,11 @@ static void gmm7550_hreset(uint rst)
     break;
   case 1:  /* assert */
     gpio_put(GMM7550_MR_PIN, 1);
+    i2c_gpio_initialized = false;
     break;
   default: /* pulse */
     gpio_put(GMM7550_MR_PIN, 1);
+    i2c_gpio_initialized = false;
     vTaskDelay(GMM7550_MR_TIME_MS / portTICK_PERIOD_MS);
     gpio_put(GMM7550_MR_PIN, 0);
   }

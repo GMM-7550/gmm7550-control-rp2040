@@ -46,4 +46,6 @@ extern void cli_register_gpio(void);
 #define GMM7550_I2C         1
 #define GMM7550_I2C_SDA_PIN 2
 #define GMM7550_I2C_SCL_PIN 3
+
 extern void cli_register_i2c(void);
+extern bool i2c_gpio_initialized;
