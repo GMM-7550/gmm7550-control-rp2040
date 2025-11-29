@@ -80,21 +80,35 @@ static const CLI_Command_Definition_t off_cmd = {
   0
 };
 
-static BaseType_t cli_gmm7550_rst(char *pcWriteBuffer,
-                                  size_t xWriteBufferLen,
-                                  const char *pcCmd)
+static BaseType_t cli_gmm7550_hrst(char *pcWriteBuffer,
+                                   size_t xWriteBufferLen,
+                                   const char *pcCmd)
 {
-  gmm7550_hreset(2);
+  char *p;
+  BaseType_t p_len, ret;
+
+  p = (char *)FreeRTOS_CLIGetParameter(pcCmd, 1, &p_len);
+  if (p) {
+    if (p_len == 1) {
+      if (*p == '0') {
+        gmm7550_hreset(0);
+      } else if (*p == '1') {
+        gmm7550_hreset(1);
+      }
+    }
+  } else {
+    gmm7550_hreset(2);
+  }
 
   *pcWriteBuffer = '\0';
   return pdFALSE;
 }
 
-static const CLI_Command_Definition_t rst_cmd = {
-  "rst",
-  "rst 0|1|2\n  Hard reset GMM-7550 module\n  0 - reset off\n  1 - reset on\n  2 - reset pulse\n\n",
-  cli_gmm7550_rst,
-  1
+static const CLI_Command_Definition_t hrst_cmd = {
+  "hrst",
+  "hrst [0|1]\n  Hard reset GMM-7550 module\n  no argument - reset pulse\n  0 - de-assert reset off\n  1 - assert reset\n\n",
+  cli_gmm7550_hrst,
+  -1
 };
 
 void cli_register_gpio(void)
@@ -103,5 +117,5 @@ void cli_register_gpio(void)
 
   FreeRTOS_CLIRegisterCommand(&on_cmd);
   FreeRTOS_CLIRegisterCommand(&off_cmd);
-  FreeRTOS_CLIRegisterCommand(&rst_cmd);
+  FreeRTOS_CLIRegisterCommand(&hrst_cmd);
 }
