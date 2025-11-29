@@ -38,6 +38,17 @@ static inline uint8_t pca_read_reg(const uint8_t reg)
   return rx;
 }
 
+static bool config_is_safe(uint8_t b)
+{
+  const uint8_t mux = (b >> 4) & 0x0f;
+  const uint8_t cfg = b * 0x0f;
+
+  /* SPI Active mode and SPI_SEL0 == 1 is an usafe combo */
+  if (((cfg & 0xC) == 0) && (mux & 0x1)) return false;
+
+  return true;
+}
+
 static void gmm7550_i2c_gpio_init(void)
 {
   if (!i2c_gpio_initialized) {
@@ -211,21 +222,27 @@ static BaseType_t cli_mux(char *pcWriteBuffer,
 
     if (!i2c_gpio_initialized) {gmm7550_i2c_gpio_init();}
 
-    /* save state of the reset signal */
-    srst = pca_read_reg(2) & 0x01; /* output port 0 bit 0 */
-
-    gmm7550_sreset(1); /* assert reset signal to the FPGA */
-
     data = pca_read_reg(3); /* output port 1 */
     data &= 0x0f; /* keep configuration mode settings */
     data |= mux << 4;
-    pca_write_reg(3, data);
 
-    data = pca_read_reg(2); /* reset bit is known to be 0 (reset active) at this point */
-    data |= srst;           /* restore reset state */
-    pca_write_reg(2, data);
+    if (config_is_safe(data)) {
+      srst = pca_read_reg(2) & 0x01; /* save state of the reset signal */
+      gmm7550_sreset(1);      /* assert reset signal to the FPGA */
 
-    *pcWriteBuffer = '\0';
+      pca_write_reg(3, data); /* set new SPI Mux/Configuration Mode */
+
+      data = pca_read_reg(2); /* reset bit is known to be 0 (reset active) at this point */
+      data |= srst;           /* restore reset state */
+      pca_write_reg(2, data);
+
+      p = stpncpy(pcWriteBuffer, "SPI Mux configuration is ", xWriteBufferLen);
+      *p++ = hex_digit(mux);
+      *p++ = '\n';
+      *p++ = '\0';
+    } else {
+      strncpy(pcWriteBuffer, "Error: unsafe SPI Mux and Configuration Mode combination\n", xWriteBufferLen);
+    }
   } else {
     strncpy(pcWriteBuffer, "Error: argument should be a single hex digit (0..f|0..F)\n", xWriteBufferLen);
   }
@@ -256,21 +273,27 @@ static BaseType_t cli_cfg(char *pcWriteBuffer,
 
     if (!i2c_gpio_initialized) {gmm7550_i2c_gpio_init();}
 
-    /* save state of the reset signal */
-    srst = pca_read_reg(2) & 0x01; /* output port 0 bit 0 */
-
-    gmm7550_sreset(1); /* assert reset signal to the FPGA */
-
     data = pca_read_reg(3); /* output port 1 */
     data &= 0xf0; /* keep SPI multiplexor settings */
     data |= cfg;
-    pca_write_reg(3, data);
 
-    data = pca_read_reg(2); /* reset bit is known to be 0 (reset active) at this point */
-    data |= srst;           /* restore reset state */
-    pca_write_reg(2, data);
+    if (config_is_safe(data)) {
+      srst = pca_read_reg(2) & 0x01; /* save state of the reset signal */
+      gmm7550_sreset(1);      /* assert reset signal to the FPGA */
 
-    *pcWriteBuffer = '\0';
+      pca_write_reg(3, data); /* set new SPI Mux/Configuration Mode */
+
+      data = pca_read_reg(2); /* reset bit is known to be 0 (reset active) at this point */
+      data |= srst;           /* restore reset state */
+      pca_write_reg(2, data);
+
+      p = stpncpy(pcWriteBuffer, "Configuration mode is ", xWriteBufferLen);
+      *p++ = hex_digit(cfg);
+      *p++ = '\n';
+      *p++ = '\0';
+    } else {
+      strncpy(pcWriteBuffer, "Error: unsafe SPI Mux and Configuration Mode combination\n", xWriteBufferLen);
+    }
   } else {
     strncpy(pcWriteBuffer, "Error: argument should be a single hex digit (0..f|0..F)\n", xWriteBufferLen);
   }
