@@ -41,7 +41,7 @@ static inline uint8_t pca_read_reg(const uint8_t reg)
 static bool config_is_safe(uint8_t b)
 {
   const uint8_t mux = (b >> 4) & 0x0f;
-  const uint8_t cfg = b * 0x0f;
+  const uint8_t cfg = b & 0x0f;
 
   /* SPI Active mode and SPI_SEL0 == 1 is an usafe combo */
   if (((cfg & 0xC) == 0) && (mux & 0x1)) return false;
