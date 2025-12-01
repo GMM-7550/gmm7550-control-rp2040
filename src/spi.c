@@ -16,6 +16,7 @@ static void spi_task()
 
   while(1) {
     if (tud_cdc_n_connected(CDC_SPI)) {
+      gpio_put(GMM7550_SPI_NCS_PIN, 0);
       if(tud_cdc_n_available(CDC_SPI)) {
         len = tud_cdc_n_read(CDC_SPI, spi_tx_buf, SPI_BUFFER_SIZE);
         if (len) {
@@ -24,6 +25,8 @@ static void spi_task()
           tud_cdc_n_write_flush(CDC_SPI);
         }
       }
+    } else {
+      gpio_put(GMM7550_SPI_NCS_PIN, 1);
     }
     vTaskDelay(1);
   }
@@ -31,12 +34,15 @@ static void spi_task()
 
 void gmm7550_spi_init(void)
 {
-  spi_init(spi, 250*1000);
+  spi_init(spi, 20*1000*1000);
 
   gpio_set_function(GMM7550_SPI_MISO_PIN, GPIO_FUNC_SPI);
   gpio_set_function(GMM7550_SPI_MOSI_PIN, GPIO_FUNC_SPI);
   gpio_set_function(GMM7550_SPI_SCK_PIN,  GPIO_FUNC_SPI);
-  gpio_set_function(GMM7550_SPI_NCS_PIN,  GPIO_FUNC_SPI);
+
+  gpio_init(GMM7550_SPI_NCS_PIN);
+  gpio_set_dir(GMM7550_SPI_NCS_PIN, GPIO_OUT);
+  gpio_put(GMM7550_SPI_NCS_PIN, 1);
 
   xTaskCreate(spi_task, "SPI",
               configMINIMAL_STACK_SIZE,
