@@ -81,6 +81,8 @@ enum {
   ITF_NUM_CDC_0_DATA,
   ITF_NUM_CDC_1,
   ITF_NUM_CDC_1_DATA,
+  ITF_NUM_CDC_2,
+  ITF_NUM_CDC_2_DATA,
   ITF_NUM_TOTAL
 };
 
@@ -92,6 +94,10 @@ enum {
 #define EPNUM_CDC_1_OUT     0x04
 #define EPNUM_CDC_1_IN      0x84
 
+#define EPNUM_CDC_2_NOTIF   0x85
+#define EPNUM_CDC_2_OUT     0x06
+#define EPNUM_CDC_2_IN      0x86
+
 #define CONFIG_TOTAL_LEN    (TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN * CFG_TUD_CDC)
 
 uint8_t const desc_fs_configuration[] =
@@ -102,6 +108,7 @@ uint8_t const desc_fs_configuration[] =
   // Interface number, string index, EP notification address and size, EP data address (out, in) and size.
   TUD_CDC_DESCRIPTOR(ITF_NUM_CDC_0, 4, EPNUM_CDC_0_NOTIF, 8, EPNUM_CDC_0_OUT, EPNUM_CDC_0_IN, 64),
   TUD_CDC_DESCRIPTOR(ITF_NUM_CDC_1, 5, EPNUM_CDC_1_NOTIF, 8, EPNUM_CDC_1_OUT, EPNUM_CDC_1_IN, 64),
+  TUD_CDC_DESCRIPTOR(ITF_NUM_CDC_2, 6, EPNUM_CDC_2_NOTIF, 8, EPNUM_CDC_2_OUT, EPNUM_CDC_2_IN, 64),
 };
 
 // Invoked when received GET CONFIGURATION DESCRIPTOR
@@ -134,6 +141,7 @@ char const *string_desc_arr[] =
   NULL,                          // 3: Serials will use unique ID if possible
   "GMM-7550 serial",             // 4: CDC Interface
   "Control CLI",                 // 5: CDC Interface
+  "GMM-7550 SPI",                // 6: CDC Interface
 };
 
 static uint16_t _desc_str[32 + 1];

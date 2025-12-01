@@ -28,6 +28,7 @@ extern void serial_init(void *params);
 /* usb.c */
 #define CDC_SERIAL 0
 #define CDC_CLI    1
+#define CDC_SPI    2
 
 extern void usb_task(void *params);
 
@@ -49,3 +50,11 @@ extern void cli_register_gpio(void);
 
 extern void cli_register_i2c(void);
 extern bool i2c_gpio_initialized;
+
+/* spi.c */
+#define GMM7550_SPI           1
+#define GMM7550_SPI_MOSI_PIN 11
+#define GMM7550_SPI_MISO_PIN  8
+#define GMM7550_SPI_SCK_PIN  10
+#define GMM7550_SPI_NCS_PIN   9
+extern void gmm7550_spi_init(void);

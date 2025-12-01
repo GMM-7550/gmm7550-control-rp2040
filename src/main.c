@@ -37,6 +37,7 @@ int main(void)
 {
   set_blink_interval_ms(BLINK_INTERVAL_DEFAULT);
   serial_init(NULL);
+  gmm7550_spi_init();
 
   xTaskCreate(blink_task, "Blink",
               configMINIMAL_STACK_SIZE, /* stack size */
