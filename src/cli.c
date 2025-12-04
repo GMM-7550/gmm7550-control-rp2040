@@ -2,6 +2,7 @@
 #include "FreeRTOS.h"
 #include "gmm7550_control.h"
 #include "tusb.h"
+#include "timestamp.h"
 
 #define CMD_MAX_SIZE 40
 
@@ -32,9 +33,9 @@ static inline void cdc_putc(const uint cdc, const uint8_t c)
   tud_cdc_n_write_flush(cdc);
 }
 
-static void cdc_puts(const uint cdc, uint8_t *s)
+static void cdc_puts(const uint cdc, const uint8_t *s)
 {
-  uint8_t *p = s;
+  const uint8_t *p = s;
   uint8_t c;
 
   while ((c = *p++)) {
@@ -97,6 +98,29 @@ static const CLI_Command_Definition_t bootsel_cmd = {
   0
 };
 
+static void print_version_info(void)
+{
+  puts("Version    : " GMM7550_CONTROL_VERSION "\n");
+  puts("Git hash   : "); puts(git_hash_str); puts("\n");
+  puts("Build time : "); puts(build_time_str); puts("\n");
+}
+
+static BaseType_t cli_version(char *pcWriteBuffer,
+                              size_t xWriteBufferLen,
+                              const char *pcCmd)
+{
+  print_version_info();
+  *pcWriteBuffer = '\0';
+  return pdFALSE;
+}
+
+static const CLI_Command_Definition_t version_cmd = {
+  "version",
+  "version\n  Print RP2040 firmware version and build time information\n\n",
+  cli_version,
+  0
+};
+
 void process_command(const uint8_t* cmd)
 {
   BaseType_t ret;
@@ -117,10 +141,12 @@ void cli_task(__unused void *params)
   cli_register_gpio();
   cli_register_i2c();
   FreeRTOS_CLIRegisterCommand(&bootsel_cmd);
+  FreeRTOS_CLIRegisterCommand(&version_cmd);
 
   while(1) {
     if (was_disconnected) {
-      puts("\nGMM-7550 Control CLI");
+      puts("\nGMM-7550 Control CLI\n\n");
+      print_version_info();
       was_disconnected = false;
     }
     puts("\n> ");

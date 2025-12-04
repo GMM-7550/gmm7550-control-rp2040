@@ -7,6 +7,8 @@
  * SPDX-License-Identifier: MIT
  */
 
+#define GMM7550_CONTROL_VERSION "0.5"
+
 #define GREEN_LED_PIN 25 /* GPIO 25 on Pico-based prototype, 0 on a final h/w */
 
 #define GMM7550_UART 0

@@ -4,3 +4,6 @@
 [submodule "pico-sdk"]
 	path = pico-sdk
 	url = https://github.com/raspberrypi/pico-sdk.git
+[submodule "cmake_timestamp"]
+	path = cmake_timestamp
+	url = https://github.com/kraiskil/cmake_timestamp.git

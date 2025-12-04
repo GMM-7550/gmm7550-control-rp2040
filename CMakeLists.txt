@@ -43,6 +43,8 @@ target_compile_definitions(tinyusb PRIVATE
     PICO_USE_SW_SPIN_LOCKS=0
     )
 
+add_subdirectory(cmake_timestamp)
+
 add_executable(${TARGET_NAME}
     src/main.c
     src/serial.c
@@ -72,6 +74,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE
     tinyusb
     tinyusb_bsp
     tinyusb_device
+    timestamp
     )
 
 pico_add_extra_outputs(${TARGET_NAME})
