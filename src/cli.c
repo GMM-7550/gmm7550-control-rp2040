@@ -1,3 +1,4 @@
+#include "pico/bootrom.h"
 #include "FreeRTOS.h"
 #include "gmm7550_control.h"
 #include "tusb.h"
@@ -73,6 +74,29 @@ static uint8_t *cdc_get_line(const uint cdc)
 #define puts(s) cdc_puts(CDC_CLI, (s))
 #define get_line() cdc_get_line(CDC_CLI)
 
+static BaseType_t cli_bootsel(char *pcWriteBuffer,
+                              size_t xWriteBufferLen,
+                              const char *pcCmd)
+{
+  uint8_t c;
+  puts("\n\n*** Reboot to BOOTSEL mode ***\nAre you sure? [y/N]? ");
+  c = getc();
+  if ((c == 'y') || (c == 'Y')) {
+    putc(c); putc('\r'); putc('\n');
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+    rom_reset_usb_boot(0, 0);
+  }
+  *pcWriteBuffer = '\0';
+  return pdFALSE;
+}
+
+static const CLI_Command_Definition_t bootsel_cmd = {
+  "bootsel",
+  "bootsel\n  Reboot RP2040 into BOOTSEL mode (uf2 firmware update)\n\n",
+  cli_bootsel,
+  0
+};
+
 void process_command(const uint8_t* cmd)
 {
   BaseType_t ret;
@@ -92,6 +116,7 @@ void cli_task(__unused void *params)
 
   cli_register_gpio();
   cli_register_i2c();
+  FreeRTOS_CLIRegisterCommand(&bootsel_cmd);
 
   while(1) {
     if (was_disconnected) {

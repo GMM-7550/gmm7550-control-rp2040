@@ -65,6 +65,7 @@ target_compile_definitions(${TARGET_NAME} PRIVATE
 
 target_link_libraries(${TARGET_NAME} PRIVATE
     pico_stdlib
+    pico_bootrom
     hardware_i2c
     hardware_spi
     freertos_kernel
