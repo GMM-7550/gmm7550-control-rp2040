@@ -46,3 +46,10 @@ void usb_task(__unused void *params)
     vTaskDelay(1);
   }
 }
+
+void tud_cdc_line_coding_cb(uint8_t itf, cdc_line_coding_t const* p_line_coding)
+{
+  if (CDC_SERIAL == itf) {
+    serial_set_line_coding(p_line_coding);
+  }
+}

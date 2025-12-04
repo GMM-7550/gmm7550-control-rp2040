@@ -32,6 +32,13 @@ void serial_tx_task()
   }
 }
 
+void serial_set_line_coding(cdc_line_coding_t const* p)
+{
+  uart_tx_wait_blocking(uart);
+  (void) uart_set_baudrate(uart, p->bit_rate);
+  uart_set_format(uart, p->data_bits, p->stop_bits, p->parity);
+}
+
 void serial_init(__unused void *params)
 {
   gpio_set_function(GMM7550_UART_TX_PIN,

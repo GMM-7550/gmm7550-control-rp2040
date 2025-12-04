@@ -7,7 +7,10 @@
  * SPDX-License-Identifier: MIT
  */
 
-#define GMM7550_CONTROL_VERSION "0.5"
+#ifndef _GMM7550_CONTROL_H_
+#define _GMM7550_CONTROL_H_
+
+#define GMM7550_CONTROL_VERSION "0.5.1"
 
 #define GREEN_LED_PIN 25 /* GPIO 25 on Pico-based prototype, 0 on a final h/w */
 
@@ -18,9 +21,11 @@
 /* main.c */
 
 /* serial.c */
+#include "tusb.h"
 #include "queue.h"
 extern QueueHandle_t serial_rxQueue, serial_txQueue;
 extern void serial_init(void *params);
+extern void serial_set_line_coding(cdc_line_coding_t const* p_line_coding);
 
 /* usb.c */
 #define CDC_SERIAL 0
@@ -57,3 +62,5 @@ extern bool i2c_gpio_initialized;
 #define GMM7550_SPI_NCS_PIN   9
 extern void gmm7550_spi_init(void);
 extern volatile bool spi_connected;
+
+#endif
