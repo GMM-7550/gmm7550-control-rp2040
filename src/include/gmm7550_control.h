@@ -14,11 +14,6 @@
 #define GMM7550_UART_RX_PIN 13
 
 /* main.c */
-#define BLINK_ON_TIME 100
-#define BLINK_INTERVAL_DEFAULT 1900
-#define BLINK_INTERVAL_CLI_CONNECTED 900
-
-extern void set_blink_interval_ms(uint32_t ms);
 
 /* serial.c */
 #include "queue.h"
@@ -34,6 +29,7 @@ extern void usb_task(void *params);
 
 /* cli.c */
 extern void cli_task(void *params);
+extern volatile bool cli_connected;
 
 /* gpio.c */
 #define GMM7550_MR_PIN     15
@@ -58,3 +54,4 @@ extern bool i2c_gpio_initialized;
 #define GMM7550_SPI_SCK_PIN  10
 #define GMM7550_SPI_NCS_PIN   9
 extern void gmm7550_spi_init(void);
+extern volatile bool spi_connected;

@@ -13,15 +13,18 @@
 
 #include "gmm7550_control.h"
 
-static uint32_t blink_interval;
+#define BLINK_ON_TIME 100
+#define BLINK_INTERVAL_DEFAULT 2900
+#define BLINK_INTERVAL_CLI_CONNECTED 900
+#define BLINK_INTERVAL_SPI_CONNECTED 100
 
-void set_blink_interval_ms(uint32_t ms)
-{
-  blink_interval = ms / portTICK_PERIOD_MS;
-}
+volatile bool cli_connected;
+volatile bool spi_connected;
 
 void blink_task(__unused void *params)
 {
+  uint32_t blink_interval;
+
   gpio_init(GREEN_LED_PIN);
   gpio_set_dir(GREEN_LED_PIN, GPIO_OUT);
 
@@ -29,13 +32,22 @@ void blink_task(__unused void *params)
     gpio_put(GREEN_LED_PIN, 1);
     vTaskDelay(BLINK_ON_TIME / portTICK_PERIOD_MS);
     gpio_put(GREEN_LED_PIN, 0);
+    if (spi_connected) {
+      blink_interval = BLINK_INTERVAL_SPI_CONNECTED / portTICK_PERIOD_MS;
+    } else if (cli_connected) {
+      blink_interval = BLINK_INTERVAL_CLI_CONNECTED / portTICK_PERIOD_MS;
+    } else {
+      blink_interval = BLINK_INTERVAL_DEFAULT / portTICK_PERIOD_MS;
+    }
     vTaskDelay(blink_interval);
   }
 }
 
 int main(void)
 {
-  set_blink_interval_ms(BLINK_INTERVAL_DEFAULT);
+  cli_connected = false;
+  spi_connected = false;
+
   serial_init(NULL);
   gmm7550_spi_init();
 

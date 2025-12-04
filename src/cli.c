@@ -12,14 +12,12 @@ static inline uint8_t cdc_getc(const uint cdc)
 {
   uint8_t c;
   while(1) {
-    if (tud_cdc_n_connected(cdc)) {
-      set_blink_interval_ms(BLINK_INTERVAL_CLI_CONNECTED);
+    if ((cli_connected = tud_cdc_n_connected(cdc))) {
       if (tud_cdc_n_available(cdc)) {
         tud_cdc_n_read(cdc, &c, 1);
         return c;
       }
     } else {
-      set_blink_interval_ms(BLINK_INTERVAL_DEFAULT);
       was_disconnected = true;
     }
     vTaskDelay(1);

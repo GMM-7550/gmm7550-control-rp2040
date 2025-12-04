@@ -15,7 +15,7 @@ static void spi_task()
   uint32_t len;
 
   while(1) {
-    if (tud_cdc_n_connected(CDC_SPI)) {
+    if ((spi_connected = tud_cdc_n_connected(CDC_SPI))) {
       gpio_put(GMM7550_SPI_NCS_PIN, 0);
       if(tud_cdc_n_available(CDC_SPI)) {
         len = tud_cdc_n_read(CDC_SPI, spi_tx_buf, SPI_BUFFER_SIZE);
