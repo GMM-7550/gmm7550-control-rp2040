@@ -10,7 +10,7 @@
 #ifndef _GMM7550_CONTROL_H_
 #define _GMM7550_CONTROL_H_
 
-#define GMM7550_CONTROL_VERSION "0.5.1"
+#define GMM7550_CONTROL_VERSION "0.5.2"
 
 #define GREEN_LED_PIN 25 /* GPIO 25 on Pico-based prototype, 0 on a final h/w */
 

@@ -6,7 +6,7 @@
 
 static spi_inst_t *spi = SPI_INSTANCE(GMM7550_SPI);
 
-#define SPI_BUFFER_SIZE 32
+#define SPI_BUFFER_SIZE 64
 static uint8_t spi_tx_buf[SPI_BUFFER_SIZE];
 static uint8_t spi_rx_buf[SPI_BUFFER_SIZE];
 

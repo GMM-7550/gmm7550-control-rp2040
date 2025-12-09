@@ -3,7 +3,7 @@
 import sys
 from serial import Serial
 
-SPI_BLOCK_SIZE = 32
+SPI_BLOCK_SIZE = 64
 
 def main():
     with open(sys.argv[1], mode='br') as f:
