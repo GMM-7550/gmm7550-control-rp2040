@@ -17,15 +17,19 @@
 #define GMM7550_UART 0
 #define GMM7550_UART_TX_PIN 12
 #define GMM7550_UART_RX_PIN 13
+#define GMM7550_UART_DEFAULT_BAUDRATE 115200
 
 /* main.c */
 
 /* serial.c */
 #include "tusb.h"
-#include "queue.h"
-extern QueueHandle_t serial_rxQueue, serial_txQueue;
+
+#define SERIAL_BUFFER_SIZE 64
+#define GMM7550_UART_READ_WAIT_US 5000
 extern void serial_init(void *params);
 extern void serial_set_line_coding(cdc_line_coding_t const* p_line_coding);
+extern void serial_putc(const uint8_t c);
+extern int  serial_getc_us(void);
 
 /* usb.c */
 #define CDC_SERIAL 0

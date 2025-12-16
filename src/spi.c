@@ -2,6 +2,7 @@
 #include "hardware/spi.h"
 #include "tusb.h"
 #include "FreeRTOS.h"
+#include "task.h"
 #include "gmm7550_control.h"
 
 static spi_inst_t *spi = SPI_INSTANCE(GMM7550_SPI);
@@ -34,7 +35,7 @@ static void spi_task()
 
 void gmm7550_spi_init(void)
 {
-  spi_init(spi, 20*1000*1000);
+  spi_init(spi, 50*1000*1000);
 
   gpio_set_function(GMM7550_SPI_MISO_PIN, GPIO_FUNC_SPI);
   gpio_set_function(GMM7550_SPI_MOSI_PIN, GPIO_FUNC_SPI);

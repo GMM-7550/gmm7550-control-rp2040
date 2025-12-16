@@ -1,5 +1,6 @@
 #include "pico/bootrom.h"
 #include "FreeRTOS.h"
+#include "task.h"
 #include "gmm7550_control.h"
 #include "tusb.h"
 #include "timestamp.h"

@@ -1,5 +1,6 @@
 #include "pico/stdlib.h"
 #include "FreeRTOS.h"
+#include "task.h"
 #include "FreeRTOS_CLI.h"
 #include "gmm7550_control.h"
 
