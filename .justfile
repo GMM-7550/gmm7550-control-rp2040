@@ -20,9 +20,10 @@ make:
 cp:
   cp {{b}}/gmm_control.uf2 /run/media/ak/RPI-RP2/
 
+default_baud := "115200"
 # connect to the target (GMM-7550) serial interface
-com:
-  picocom -q -b 115200 /dev/ttyACM0
+com baud=default_baud:
+  picocom -q -b {{baud}} /dev/ttyACM0
 
 # connect to RP2040 CLI (control interface)
 cli:
