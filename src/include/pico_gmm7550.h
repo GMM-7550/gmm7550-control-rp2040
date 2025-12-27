@@ -7,4 +7,20 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <boards/pico.h>
+#ifndef _BOARDS_PICO_GMM7550_H
+#define _BOARDS_PICO_GMM7550_H
+
+pico_board_cmake_set(PICO_PLATFORM, rp2040)
+
+#define PICO_BOOT_STAGE2_CHOOSE_GENERIC_03H 1
+
+#ifndef PICO_FLASH_SPI_CLKDIV
+#define PICO_FLASH_SPI_CLKDIV 2
+#endif
+
+pico_board_cmake_set_default(PICO_FLASH_SIZE_BYTES, (2 * 1024 * 1024))
+#ifndef PICO_FLASH_SIZE_BYTES
+#define PICO_FLASH_SIZE_BYTES (2 * 1024 * 1024)
+#endif
+
+#endif
