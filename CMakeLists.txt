@@ -54,6 +54,7 @@ add_executable(${TARGET_NAME}
     src/gpio.c
     src/i2c.c
     src/spi.c
+    src/pll.c
     freertos-plus-cli/FreeRTOS_CLI.c
     )
 
