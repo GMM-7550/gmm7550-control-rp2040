@@ -8,9 +8,6 @@
  */
 
 #include "pico/stdlib.h"
-#include "FreeRTOS.h"
-#include "task.h"
-
 #include "gmm7550_control.h"
 
 #define BLINK_ON_TIME 100

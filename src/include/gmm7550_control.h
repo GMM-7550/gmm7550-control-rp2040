@@ -7,6 +7,9 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include "FreeRTOS.h"
+#include "task.h"
+
 #ifndef _GMM7550_CONTROL_H_
 #define _GMM7550_CONTROL_H_
 

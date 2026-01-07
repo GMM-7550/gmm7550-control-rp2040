@@ -1,8 +1,6 @@
 #include "pico/stdlib.h"
 #include "hardware/spi.h"
 #include "tusb.h"
-#include "FreeRTOS.h"
-#include "task.h"
 #include "gmm7550_control.h"
 
 static spi_inst_t *spi = SPI_INSTANCE(GMM7550_SPI);

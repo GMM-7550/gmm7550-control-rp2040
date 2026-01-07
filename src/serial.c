@@ -1,8 +1,4 @@
 #include "pico/stdlib.h"
-
-#include "FreeRTOS.h"
-#include "task.h"
-
 #include "gmm7550_control.h"
 
 static uart_inst_t *uart = UART_INSTANCE(GMM7550_UART);

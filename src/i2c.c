@@ -1,9 +1,7 @@
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
-#include "FreeRTOS.h"
-#include "task.h"
-#include "FreeRTOS_CLI.h"
 #include "gmm7550_control.h"
+#include "FreeRTOS_CLI.h"
 
 #include "string.h"
 #include "hex.h"

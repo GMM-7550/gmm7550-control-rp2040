@@ -1,9 +1,5 @@
-
-#include "FreeRTOS.h"
-#include "task.h"
-#include "tusb.h"
-
 #include "gmm7550_control.h"
+#include "tusb.h"
 
 static void usb_init(__unused void *params)
 {
