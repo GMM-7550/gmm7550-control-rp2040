@@ -2,7 +2,7 @@
  * Raspberry Pi RP2040 Control firmware for GMM-7550 module
  * https://www.gmm7550.dev/doc/rp2040.html
  *
- * Copyright (c) 2025 Anton Kuzmin <ak@gmm7550.dev>
+ * Copyright (c) 2025, 2026 Anton Kuzmin <ak@gmm7550.dev>
  *
  * SPDX-License-Identifier: MIT
  */
@@ -13,7 +13,7 @@
 #ifndef _GMM7550_CONTROL_H_
 #define _GMM7550_CONTROL_H_
 
-#define GMM7550_CONTROL_VERSION "0.6.0"
+#define GMM7550_CONTROL_VERSION "0.6.1"
 
 #define GREEN_LED_PIN 0 /* GPIO 25 on Pico-based prototype, 0 on a final h/w */
 
