@@ -14,6 +14,8 @@ bool i2c_gpio_initialized = false;
 static void gmm7550_i2c_init(void)
 {
   i2c_init(i2c, 400000);
+  gpio_pull_up(GMM7550_I2C_SDA_PIN);
+  gpio_pull_up(GMM7550_I2C_SCL_PIN);
   gpio_set_function(GMM7550_I2C_SDA_PIN, GPIO_FUNC_I2C);
   gpio_set_function(GMM7550_I2C_SCL_PIN, GPIO_FUNC_I2C);
 }
