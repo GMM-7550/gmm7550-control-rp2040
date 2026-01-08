@@ -41,6 +41,64 @@ static char *uint16_to_hex(char *p, const uint16_t d)
   return p;
 }
 
+/* Factory configuration page (to be skipped) */
+#define EEPROM_F_PAGE_SIZE 16
+#define EEPROM_PAGE_SIZE   24
+
+/* Should be greater than 8 ms */
+#define EEPROM_WRITE_DELAY_MS 12
+
+/* Page 0 -- factory default */
+static uint16_t page0_0[EEPROM_PAGE_SIZE] = {
+  0xa801, 0x00ec, 0x4000, 0x2470, 0x0200, 0x0060, 0x0000, 0x0000,
+  0x0000, 0x0a22, 0x1800, 0x00d8, 0x8000, 0x0c40, 0x0000, 0x0c48,
+  0x0000, 0x0d08, 0x0000, 0x1008, 0x0000, 0x0000, 0x0000, 0x1000
+};
+
+/* Page 0 -- GMM-7550 default (Out 2 disabled) */
+static uint16_t page0_a[EEPROM_PAGE_SIZE] = {
+  0x2020, 0x0446, 0x4000, 0x1c60, 0x0200, 0x0060, 0x0000, 0x0000,
+  0x0000, 0x0a22, 0x1800, 0x00d8, 0x0000, 0x0c10, 0x0200, 0x0c00,
+  0x0000, 0xc000, 0x0003, 0x0080, 0x0020, 0x0000, 0x0000, 0x1000
+};
+
+/* Page 0 -- Out 2 LVDS 24 MHz for USB3340 (ULPI) reference clock */
+static uint16_t page0_b[EEPROM_PAGE_SIZE] = {
+  0x2020, 0x0446, 0x4000, 0x1c60, 0x0200, 0x0060, 0x0000, 0x0000,
+  0x0000, 0x0a22, 0x1800, 0x00d8, 0x0000, 0x3210, 0x0000, 0x0c10,
+  0x0000, 0xc000, 0x0003, 0x0080, 0x0020, 0x0000, 0x0000, 0x1000
+};
+
+static void pll_program_page(const uint16_t *eeprom_data)
+{
+  const uint16_t *d = eeprom_data;
+
+  gmm7550_sreset(1);
+  uint8_t io = pca_read_reg(2);
+  io |= 0x20; /* Drive HW_SW_CTRL pin High -- select Page 1 */
+  pca_write_reg(2, io);
+  gmm7550_sreset(0);
+
+  vTaskDelay(EEPROM_WRITE_DELAY_MS / portTICK_PERIOD_MS);
+  pll_write_reg(0x000f, 0x5020); /* Unlock EEPROM */
+  vTaskDelay(EEPROM_WRITE_DELAY_MS / portTICK_PERIOD_MS);
+  pll_write_reg(0x000d, EEPROM_F_PAGE_SIZE); /* Skip factory config. page, start address of Page 0 */
+  for (int i=0; i<EEPROM_PAGE_SIZE; i++) {
+    /* Write data word, address is auto-incremented */
+    pll_write_reg(0x000e, *d++);
+    vTaskDelay(EEPROM_WRITE_DELAY_MS / portTICK_PERIOD_MS);
+  }
+  /* TODO: CRC Update ? */
+  pll_write_reg(0x000f, 0xA020); /* Lock EEPROM */
+  vTaskDelay(EEPROM_WRITE_DELAY_MS / portTICK_PERIOD_MS);
+
+  gmm7550_sreset(1);
+  io = pca_read_reg(2);
+  io &= ~0x20; /* Drive HW_SW_CTRL pin Low -- select Page 0, default */
+  pca_write_reg(2, io);
+  gmm7550_sreset(0);
+}
+
 static BaseType_t cli_pll(char *pcWriteBuffer,
                           size_t xWriteBufferLen,
                           const char *pcCmd)
@@ -140,20 +198,44 @@ static BaseType_t cli_pll(char *pcWriteBuffer,
       }
     } else {
       if (p_len == 2) {
-        pcWriteBuffer = '\0';
-        return pdFALSE;
+        if (*p == 'P') {
+          if (*(p+1) == '0') {
+            strncpy(pcWriteBuffer,
+                    "Program PLL EEPROM Page 0 with factory (TI) default configuraton\n",
+                    xWriteBufferLen);
+            pll_program_page(page0_0);
+          } else if (*(p+1) == 'a') {
+            strncpy(pcWriteBuffer,
+                    "Program PLL EEPROM Page 0 with default GMM-7550 configuration\n",
+                    xWriteBufferLen);
+            pll_program_page(page0_a);
+          } else if (*(p+1) == 'b') {
+            strncpy(pcWriteBuffer,
+                    "Program PLL EEPROM Page 0 with Out 2 (LVDS, 24 MHz) configuration\n",
+                    xWriteBufferLen);
+            pll_program_page(page0_b);
+          } else {
+            strncpy(pcWriteBuffer,
+                    "Unknown EEPROM configuration (should be either '0', 'a' or 'b')\n",
+                    xWriteBufferLen);
+          }
+        } else {
+          strncpy(pcWriteBuffer,
+                  "Unknown PLL command\n",
+                  xWriteBufferLen);
+        }
       } else {
         strncpy(pcWriteBuffer,
                 "Wrong PLL command agrument length (should be 1 or 2 characters)\n",
                 xWriteBufferLen);
-        return pdFALSE;
       }
     }
+    return pdFALSE;
   } else { /* no argument -- print help */
     switch (line) {
     case 0:
       strncpy(pcWriteBuffer,
-              "CDCE6214 control: pll c|r|e|Pa|Pb\n",
+              "CDCE6214 control: pll c|r|e|P0|Pa|Pb\n",
               xWriteBufferLen);
       line++;
       break;
@@ -177,11 +259,17 @@ static BaseType_t cli_pll(char *pcWriteBuffer,
       break;
     case 4:
       strncpy(pcWriteBuffer,
-              "  Pa -- boot from Page 1 and program Page 0 with default configuration (Out 2 disabled)\n",
+              "  P0 -- boot from Page 1 and program Page 0 with factory (TI) default configuration\n",
               xWriteBufferLen);
       line++;
       break;
     case 5:
+      strncpy(pcWriteBuffer,
+              "  Pa -- boot from Page 1 and program Page 0 with default configuration (Out 2 disabled)\n",
+              xWriteBufferLen);
+      line++;
+      break;
+    case 6:
       strncpy(pcWriteBuffer,
               "  Pb -- boot from Page 1 and program Page 0 with Out 2 enabled (LVDS, 24 MHz)\n",
               xWriteBufferLen);
@@ -198,7 +286,7 @@ static BaseType_t cli_pll(char *pcWriteBuffer,
 
 static const CLI_Command_Definition_t pll_cmd = {
   "pll",
-  "pll [c|r|e|Pa|Pb]\n"
+  "pll [c|r|e|P0|Pa|Pb]\n"
   "  PLL (CDCE6214) control (print help without an argument)\n\n",
   cli_pll,
   -1
