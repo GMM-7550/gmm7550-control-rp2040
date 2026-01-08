@@ -13,7 +13,7 @@
 #ifndef _GMM7550_CONTROL_H_
 #define _GMM7550_CONTROL_H_
 
-#define GMM7550_CONTROL_VERSION "0.6.3"
+#define GMM7550_CONTROL_VERSION "0.6.4"
 
 #define GREEN_LED_PIN 0 /* GPIO 25 on Pico-based prototype, 0 on a final h/w */
 
@@ -60,6 +60,12 @@ extern void cli_register_gpio(void);
 
 extern void cli_register_i2c(void);
 extern bool i2c_gpio_initialized;
+/* Exports for PLL (CDCE6214) control and programming */
+#include "hardware/i2c.h"
+extern i2c_inst_t *i2c;
+extern void gmm7550_sreset(const uint rst);
+extern void pca_write_reg(const uint8_t r, const uint8_t d);
+extern uint8_t pca_read_reg(const uint8_t r);
 
 /* pll.c */
 extern void cli_register_pll(void);

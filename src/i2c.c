@@ -1,5 +1,4 @@
 #include "pico/stdlib.h"
-#include "hardware/i2c.h"
 #include "gmm7550_control.h"
 #include "FreeRTOS_CLI.h"
 
@@ -8,7 +7,7 @@
 
 #define PCA9539A_ADDR 0x74
 
-static i2c_inst_t *i2c = I2C_INSTANCE(GMM7550_I2C);
+i2c_inst_t *i2c = I2C_INSTANCE(GMM7550_I2C);
 bool i2c_gpio_initialized = false;
 
 static void gmm7550_i2c_init(void)
@@ -20,7 +19,7 @@ static void gmm7550_i2c_init(void)
   gpio_set_function(GMM7550_I2C_SCL_PIN, GPIO_FUNC_I2C);
 }
 
-static inline void pca_write_reg(const uint8_t reg, const uint8_t data)
+void pca_write_reg(const uint8_t reg, const uint8_t data)
 {
   uint8_t buf[2];
   buf[0] = reg;
@@ -28,7 +27,7 @@ static inline void pca_write_reg(const uint8_t reg, const uint8_t data)
   (void) i2c_write_blocking(i2c, PCA9539A_ADDR, buf, 2, false);
 }
 
-static inline uint8_t pca_read_reg(const uint8_t reg)
+uint8_t pca_read_reg(const uint8_t reg)
 {
   uint8_t tx = reg;
   uint8_t rx = 0;
@@ -181,7 +180,7 @@ static const CLI_Command_Definition_t pca_cmd = {
   0
 };
 
-static void gmm7550_sreset(uint rst)
+void gmm7550_sreset(const uint rst)
 {
   uint8_t data;
 
