@@ -31,7 +31,7 @@ cli:
 
 # download bit-file to GMM-7550 via SPI interface (cfg 4; mux 1)
 cfg bitFile:
-  ./tools/gmm7550_spi.py {{bitFile}}
+  ./tools/gmm7550_spi.py --configure {{bitFile}}
 
 dmesg:
   sudo dmesg | grep -i usb | tail -20
