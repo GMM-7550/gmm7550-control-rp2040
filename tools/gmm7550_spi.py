@@ -13,15 +13,16 @@ USB adapter board'''
 
 __version__ = '0.7.0'
 
+import os
 import sys
-import time
 import argparse
 from serial import Serial
+from functools import reduce
 
 SERIAL_SPI_BLOCK_SIZE = 64
 SERIAL_SPI_DEFAULT_PORT = "/dev/ttyACM2"
 
-def load_fpga_config(fname, port=SERIAL_SPI_DEFAULT_PORT):
+def load_fpga_config(fname, port):
     with open(fname, mode='br') as f:
         data = f.read()
         data_len = len(data)
@@ -33,7 +34,30 @@ def load_fpga_config(fname, port=SERIAL_SPI_DEFAULT_PORT):
             spi.write(block)
             spi.read(count)
 
-if __name__ == '__main__':
+def print_spi_id(port):
+    with Serial(port) as spi:
+        spi.write([0x9f, 0, 0, 0])
+        spi.flush()
+        id = spi.read(4)
+        print('SPI-NOR Flash JEDEC ID')
+        print('  manufacturer: %02x' % id[1])
+        print('   memory type: %02x' % id[2])
+        print('      capacity: %02x' % id[3])
+
+    with Serial(port) as spi:
+        # 3 address + 1 dummy + 16 bytes UID
+        uid = [0 for i in range(3 + 1 + 16)]
+        uid.insert(0, 0x4b) # RDUID command
+        spi.write(uid)
+        spi.flush()
+        uid = spi.read(5 + 16) # 1+3+1 = 5
+        uid = reduce(lambda s, b : s + " %02x" % b,
+                     uid[5:],
+                     '           UID:')
+        print()
+        print(uid)
+
+def main():
     p = argparse.ArgumentParser(description = __doc__)
     p.add_argument('-v', '--verbose', action='store_true', help='be more verbose')
 
@@ -104,5 +128,29 @@ if __name__ == '__main__':
 
     args = p.parse_args()
 
+    if not (args.spi_info or args.spi_read or
+            args.spi_write or args.spi_erase or
+            args.configure):
+        print('At least one action [info/read/write/erase/configure] should be specified')
+        return 1
+
+    if (args.spi_read or args.spi_write or args.configure) and (args.file is None):
+        print('FPGA configure and SPI NOR read and write operations require file to be specified')
+        return 1
+
+    if args.spi_info:
+        if args.spi_mem:
+            cfg_dir = os.path.dirname(sys.argv[0])
+            cfg_dir = os.path.abspath(cfg_dir) + '/fpga_configs/'
+            cfg = cfg_dir + 'spi_bridge_' + args.spi_mem + '.bit'
+            load_fpga_config(cfg, args.port)
+
+        print_spi_id(args.port)
+
     if args.configure:
         load_fpga_config(args.file, args.port)
+
+    return 0
+
+if __name__ == '__main__':
+    sys.exit(main())
