@@ -7,15 +7,18 @@
 #
 # Copyright (c) 2022-2026 Anton Kuzmin <ak@gmm7550.dev>
 
-'''Command line tool to configure FPGA and program
-NOR Flash on the GMM-7550 module via SPI on the RP2040
-USB adapter board'''
+'''Command line tool to configure FPGA and program NOR Flash on the
+GMM-7550 module via SPI on the RP2040 USB adapter board.  Note that SPI
+multiplexer and FPGA configuration mode should be set to the correct
+values via CLI interface.
+'''
 
 __version__ = '0.7.0'
 
 import os
 import sys
 import argparse
+import logging
 from serial import Serial
 from functools import reduce
 
@@ -24,6 +27,9 @@ SERIAL_SPI_DEFAULT_PORT = "/dev/ttyACM2"
 
 SERIAL_SPI_DEFAULT_BIT_RATE = 50
 SERIAL_SPI_SLOW_BIT_RATE    = 15
+
+logging.basicConfig(stream=sys.stderr, level=logging.WARNING)
+log = logging.getLogger('gmm7550_spi')
 
 def load_fpga_config(fname, port):
     with open(fname, mode='br') as f:
@@ -68,7 +74,10 @@ def print_spi_id(port):
 
 def main():
     p = argparse.ArgumentParser(description = __doc__)
-    p.add_argument('-v', '--verbose', action='store_true', help='be more verbose')
+
+    p.add_argument('-V', '--version', action='version', version=__version__)
+
+    p.add_argument('-v', '--verbose', action='count', default=0, help='be more verbose')
 
     p.add_argument('-i', '--info',
                    action='store_true',
@@ -78,7 +87,7 @@ def main():
     p.add_argument('-n', '--dry-run',
                    action='store_false',
                    dest='spi_execute',
-                   help='Print the commands that would be executed, but do not execute write and erase operations')
+                   help='Do not execute write and erase operations')
 
     p.add_argument('-c', '--configure',
                    action='store_true',
@@ -125,7 +134,7 @@ def main():
 
     p.add_argument('-M', '--mem', type=str, dest='spi_mem',
                    choices=['east', 'west', 'north'],
-                   help='Access SPI NOR on the memory add-on board')
+                   help='Access SPI NOR on the Memory add-on board')
 
     p.add_argument('-P', '--port', type=str,
                    default=SERIAL_SPI_DEFAULT_PORT,
@@ -133,9 +142,19 @@ def main():
 
     p.add_argument('file',
                    nargs='?',
-                   help='Filename to read/write SPI NOR data')
+                   help='Filename to read/write SPI NOR data and FPGA configuration')
 
     args = p.parse_args()
+
+    if args.verbose == 0:
+        log.setLevel(logging.WARNING)
+    elif args.verbose == 1:
+        log.setLevel(logging.INFO)
+    else: # >= 2
+        log.setLevel(logging.DEBUG)
+
+    log.debug('Verbosity level: %d', args.verbose)
+    log.debug('Serial-to-SPI device: %s', args.port)
 
     if not (args.spi_info or args.spi_read or
             args.spi_write or args.spi_erase or
@@ -147,17 +166,19 @@ def main():
         print('FPGA configure and SPI NOR read and write operations require file to be specified')
         return 1
 
+    if args.configure:
+        log.info('Configure FPGA from file: %s', args.file)
+        load_fpga_config(args.file, args.port)
+
     if args.spi_info:
         if args.spi_mem:
+            log.info('Pre-configure FPGA with SPI bridge: %s' % args.spi_mem)
             cfg_dir = os.path.dirname(sys.argv[0])
             cfg_dir = os.path.abspath(cfg_dir) + '/fpga_configs/'
             cfg = cfg_dir + 'spi_bridge_' + args.spi_mem + '.bit'
             load_fpga_config(cfg, args.port)
 
         print_spi_id(args.port)
-
-    if args.configure:
-        load_fpga_config(args.file, args.port)
 
     return 0
 
