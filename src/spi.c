@@ -5,6 +5,8 @@
 
 static spi_inst_t *spi = SPI_INSTANCE(GMM7550_SPI);
 
+#define SPI_DEFAULT_BIT_RATE (50*1000*1000)
+
 #define SPI_BUFFER_SIZE 64
 static uint8_t spi_tx_buf[SPI_BUFFER_SIZE];
 static uint8_t spi_rx_buf[SPI_BUFFER_SIZE];
@@ -33,7 +35,7 @@ static void spi_task()
 
 void gmm7550_spi_init(void)
 {
-  spi_init(spi, 50*1000*1000);
+  spi_init(spi, SPI_DEFAULT_BIT_RATE);
 
   gpio_set_function(GMM7550_SPI_MISO_PIN, GPIO_FUNC_SPI);
   gpio_set_function(GMM7550_SPI_MOSI_PIN, GPIO_FUNC_SPI);
@@ -49,4 +51,18 @@ void gmm7550_spi_init(void)
               (tskIDLE_PRIORITY + 2UL),
               NULL
               );
+}
+
+void gmm7550_spi_set_baudrate(const uint rate)
+{
+  spi_set_baudrate(spi, rate * 1000 * 1000);
+}
+
+void gmm7550_spi_set_cs(const bool cs)
+{
+  if (cs) {
+    gpio_put(GMM7550_SPI_NCS_PIN, 0);
+  } else {
+    gpio_put(GMM7550_SPI_NCS_PIN, 1);
+  }
 }

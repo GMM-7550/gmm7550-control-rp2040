@@ -22,6 +22,9 @@ from functools import reduce
 SERIAL_SPI_BLOCK_SIZE = 64
 SERIAL_SPI_DEFAULT_PORT = "/dev/ttyACM2"
 
+SERIAL_SPI_DEFAULT_BIT_RATE = 50
+SERIAL_SPI_SLOW_BIT_RATE    = 15
+
 def load_fpga_config(fname, port):
     with open(fname, mode='br') as f:
         data = f.read()
@@ -36,21 +39,27 @@ def load_fpga_config(fname, port):
 
 def print_spi_id(port):
     with Serial(port) as spi:
-        spi.write([0x9f, 0, 0, 0])
+        # Slow-down SPI (SPI NOR may be connected through FPGA bridging)
+        spi.baudrate = SERIAL_SPI_SLOW_BIT_RATE
+        spi.write([0x9f, 0, 0, 0]) # Read JEDEC ID
         spi.flush()
         id = spi.read(4)
         print('SPI-NOR Flash JEDEC ID')
         print('  manufacturer: %02x' % id[1])
         print('   memory type: %02x' % id[2])
         print('      capacity: %02x' % id[3])
+        # Deactiate SPI /SS signal (to end RDJDID command)
+        spi.rts = False
 
-    with Serial(port) as spi:
         # 3 address + 1 dummy + 16 bytes UID
         uid = [0 for i in range(3 + 1 + 16)]
         uid.insert(0, 0x4b) # RDUID command
+        spi.rts = True      # Activate SPI /SS
         spi.write(uid)
         spi.flush()
         uid = spi.read(5 + 16) # 1+3+1 = 5
+        spi.rts = False
+        spi.baudrate = SERIAL_SPI_DEFAULT_BIT_RATE
         uid = reduce(lambda s, b : s + " %02x" % b,
                      uid[5:],
                      '           UID:')

@@ -58,5 +58,14 @@ void tud_cdc_line_coding_cb(uint8_t itf, cdc_line_coding_t const* p_line_coding)
 {
   if (CDC_SERIAL == itf) {
     serial_set_line_coding(p_line_coding);
+  } else if (CDC_SPI == itf) {
+    gmm7550_spi_set_baudrate(p_line_coding->bit_rate);
+  }
+}
+
+void tud_cdc_line_state_cb(uint8_t itf, bool dtr, bool rts)
+{
+  if (CDC_SPI == itf) {
+    gmm7550_spi_set_cs(rts);
   }
 }
