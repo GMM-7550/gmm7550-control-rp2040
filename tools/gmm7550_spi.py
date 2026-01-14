@@ -13,7 +13,7 @@ multiplexer and FPGA configuration mode should be set to the correct
 values via CLI interface.
 '''
 
-__version__ = '0.7.0'
+__version__ = '0.7.1'
 
 import os
 import sys
@@ -43,20 +43,18 @@ def load_fpga_config(fname, port):
             spi.write(block)
             spi.read(count)
 
-def print_spi_id(port):
+def get_spi_ids(port):
+    spi_ids = []
     with Serial(port) as spi:
         # Slow-down SPI (SPI NOR may be connected through FPGA bridging)
         spi.baudrate = SERIAL_SPI_SLOW_BIT_RATE
         spi.write([0x9f, 0, 0, 0]) # Read JEDEC ID
         spi.flush()
         id = spi.read(4)
-        print('SPI-NOR Flash JEDEC ID')
-        print('  manufacturer: %02x' % id[1])
-        print('   memory type: %02x' % id[2])
-        print('      capacity: %02x' % id[3])
+        spi_ids.append(id[1:])
+
         # Deactiate SPI /SS signal (to end RDJDID command)
         spi.rts = False
-
         # 3 address + 1 dummy + 16 bytes UID
         uid = [0 for i in range(3 + 1 + 16)]
         uid.insert(0, 0x4b) # RDUID command
@@ -66,11 +64,21 @@ def print_spi_id(port):
         uid = spi.read(5 + 16) # 1+3+1 = 5
         spi.rts = False
         spi.baudrate = SERIAL_SPI_DEFAULT_BIT_RATE
-        uid = reduce(lambda s, b : s + " %02x" % b,
-                     uid[5:],
-                     '           UID:')
-        print()
-        print(uid)
+
+        spi_ids.append(uid[5:])
+        return spi_ids
+
+def print_spi_id(ids):
+    id = ids[0]
+
+    print('SPI-NOR Flash JEDEC ID')
+    print('  manufacturer: %02x' % id[0])
+    print('   memory type: %02x' % id[1])
+    print('      capacity: %02x' % id[2])
+
+    uid = reduce(lambda s, b : s + " %02x" % b, ids[1],
+                 '           UID:')
+    print(uid)
 
 def main():
     p = argparse.ArgumentParser(description = __doc__)
@@ -156,6 +164,8 @@ def main():
     log.debug('Verbosity level: %d', args.verbose)
     log.debug('Serial-to-SPI device: %s', args.port)
 
+    # Basic arguments sanity check
+
     if not (args.spi_info or args.spi_read or
             args.spi_write or args.spi_erase or
             args.configure):
@@ -166,19 +176,27 @@ def main():
         print('FPGA configure and SPI NOR read and write operations require file to be specified')
         return 1
 
+    # FPGA configuration with explicit command and configuration file
+
     if args.configure:
         log.info('Configure FPGA from file: %s', args.file)
         load_fpga_config(args.file, args.port)
 
-    if args.spi_info:
-        if args.spi_mem:
-            log.info('Pre-configure FPGA with SPI bridge: %s' % args.spi_mem)
-            cfg_dir = os.path.dirname(sys.argv[0])
-            cfg_dir = os.path.abspath(cfg_dir) + '/fpga_configs/'
-            cfg = cfg_dir + 'spi_bridge_' + args.spi_mem + '.bit'
-            load_fpga_config(cfg, args.port)
+    # FPGA configuration with pre-defined SPI bridge configuration.
+    # It should be done before access to the SPI-NOR on a Memory module
+    if args.spi_mem:
+        log.info('Pre-configure FPGA with SPI bridge: %s' % args.spi_mem)
+        cfg_dir = os.path.dirname(sys.argv[0])
+        cfg_dir = os.path.abspath(cfg_dir) + '/fpga_configs/'
+        cfg = cfg_dir + 'spi_bridge_' + args.spi_mem + '.bit'
+        load_fpga_config(cfg, args.port)
 
-        print_spi_id(args.port)
+    # Always read IDs to know the SPI-NOR chips size
+    log.info('Get SPI NOR IDs')
+    spi_ids = get_spi_ids(args.port)
+
+    if args.spi_info:
+        print_spi_id(spi_ids)
 
     return 0
 
