@@ -169,11 +169,11 @@ def main():
     if not (args.spi_info or args.spi_read or
             args.spi_write or args.spi_erase or
             args.configure):
-        print('At least one action [info/read/write/erase/configure] should be specified')
+        log.error('At least one action [info/read/write/erase/configure] should be specified')
         return 1
 
     if (args.spi_read or args.spi_write or args.configure) and (args.file is None):
-        print('FPGA configure and SPI NOR read and write operations require file to be specified')
+        log.error('FPGA configure and SPI NOR read and write operations require file to be specified')
         return 1
 
     # FPGA configuration with explicit command and configuration file
