@@ -198,6 +198,129 @@ def main():
     if args.spi_info:
         print_spi_id(spi_ids)
 
+    if spi_ids[0][0] != 0x9d : # ISSI
+        log.error('Unknown Manufacturer ID: 0x%02x' % spi_ids[0][0])
+        return 2
+
+    if spi_ids[0][1] != 0x60 :
+        log.error('Unknown Memory Type: 0x%02x' % spi_ids[0][1])
+        return 2
+
+    class spi_nor:
+        page_size    =      256  # max programmable unit
+        sector_size  =  4 * 1024 # minimal erase unit
+        block32_size = 32 * 1024 # 32K block
+        block64_size = 64 * 1024 # 64K blcok
+        chip_size    = 0
+
+    size_id = spi_ids[0][2]
+    if size_id == 0x16: # configuration SPI-NOR on the GMM-7550 module
+        log.info('IS25LP032 -- 32 Mbit (4 MiB)')
+        spi_nor.chip_size = 4 * 1024 * 1024
+    # elif size_id == 0x17:
+    #     pass
+    elif size_id == 0x18: # SPI-NOR on the Memory add-on board
+        log.info('IS25LP128 -- 128 Mbit (16 MiB)')
+        spi_nor.chip_size = 16 * 1024 * 1024
+    else:
+        log.error('Unknown Memory Size ID: 0x%02x' % size_id)
+        return 2
+
+    #
+    # Process adddress arguments
+    #
+    from enum import Enum, auto
+    class AddrUnit(Enum):
+        undefined = auto()
+        chip = auto()
+        addr = auto()
+        page = auto()
+        sector = auto()
+        block32 = auto()
+        block64 = auto()
+
+    def try_addr(arg):
+        if arg is None:
+            return False, 0, None
+        else:
+            _addrs = arg.split(',')
+            if len(_addrs) == 1:
+                return True, int(_addrs[0], 0), None
+            else:
+                return True, int(_addrs[0], 0), int(_addrs[1], 0)
+
+    spi_start, spi_end, unit_size = 0, None, 1
+    addr_unit = AddrUnit.undefined
+    addr_error = False
+
+    if args.spi_chip:
+        addr_unit = AddrUnit.chip
+        spi_start, spi_end = 0, spi_nor.chip_size-1
+        unit_size = 1
+
+    if not addr_error:
+        _set, start, end = try_addr(args.spi_addr)
+        addr_error = _set and addr_unit is not AddrUnit.undefined
+        if _set and addr_unit is AddrUnit.undefined:
+            addr_unit = AddrUnit.addr
+            spi_start, spi_end = start, end
+            unit_size = 1
+
+    if not addr_error:
+        _set, start, end = try_addr(args.spi_page)
+        addr_error = _set and addr_unit is not AddrUnit.undefined
+        if _set and addr_unit is AddrUnit.undefined:
+            addr_unit = AddrUnit.page
+            spi_start, spi_end = start, end
+            unit_size = spi_nor.page_size
+
+    if not addr_error:
+        _set, start, end = try_addr(args.spi_sector)
+        addr_error = _set and addr_unit is not AddrUnit.undefined
+        if _set and addr_unit is AddrUnit.undefined:
+            addr_unit = AddrUnit.sector
+            spi_start, spi_end = start, end
+            unit_size = spi_nor.sector_size
+
+    if not addr_error:
+        _set, start, end = try_addr(args.spi_block32)
+        addr_error = _set and addr_unit is not AddrUnit.undefined
+        if _set and addr_unit is AddrUnit.undefined:
+            addr_unit = AddrUnit.block32
+            spi_start, end = start, end
+            unit_size = spi_nor.block32_size
+
+    if not addr_error:
+        _set, start, end = try_addr(args.spi_block64)
+        addr_error = _set and addr_unit is not AddrUnit.undefined
+        if _set and addr_unit is AddrUnit.undefined:
+            addr_unit = AddrUnit.block64
+            spi_start, spi_end = start, end
+            unit_size = spi_nor.block64_size
+
+    if addr_error:
+        log.error('Address or address range should be specified only once, (-a, -p, -s, -b, -B, -C options are mutually exclusive)')
+        return 1
+
+    if addr_unit is AddrUnit.undefined and (args.spi_read or
+                                            args.spi_write or
+                                            args.spi_erase):
+        log.error('Address should be specified for read, write, and erase operations with one of the options: -a, -p, -s, -b, -B, -C')
+        return 1
+
+    spi_start_addr = spi_start * unit_size
+
+    if spi_end is None:
+        spi_end_addr = spi_start_addr + unit_size - 1
+    else:
+        spi_end_addr = (spi_end + 1) * unit_size - 1
+
+    log.info('SPI NOR address range for operation: 0x%06x..0x%06x' % (spi_start_addr, spi_end_addr))
+
+    if spi_end_addr >= spi_nor.chip_size:
+        log.error('Specified address range is outside of the chip size')
+        return 1
+
     return 0
 
 if __name__ == '__main__':
