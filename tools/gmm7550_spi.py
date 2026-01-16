@@ -13,7 +13,7 @@ multiplexer and FPGA configuration mode should be set to the correct
 values via CLI interface.
 '''
 
-__version__ = '0.7.1'
+__version__ = '0.7.2'
 
 import os
 import sys
@@ -31,6 +31,13 @@ SERIAL_SPI_SLOW_BIT_RATE    = 15
 logging.basicConfig(stream=sys.stderr, level=logging.WARNING)
 log = logging.getLogger('gmm7550_spi')
 
+######################################################################
+# Load FPGA Configuration via SPI interface
+# GMM-7550 Settings:
+# > cfg 4
+# > mux 1
+######################################################################
+
 def load_fpga_config(fname, port):
     with open(fname, mode='br') as f:
         data = f.read()
@@ -43,7 +50,11 @@ def load_fpga_config(fname, port):
             spi.write(block)
             spi.read(count)
 
-def get_spi_ids(port):
+######################################################################
+# SPI-NOR Functions
+######################################################################
+
+def spi_get_ids(port):
     spi_ids = []
     with Serial(port) as spi:
         # Slow-down SPI (SPI NOR may be connected through FPGA bridging)
@@ -79,6 +90,109 @@ def print_spi_id(ids):
     uid = reduce(lambda s, b : s + " %02x" % b, ids[1],
                  '           UID:')
     print(uid)
+
+def spi_read_status(s):
+    s.rts = True
+    s.write([0x05, 0x00])
+    s.flush()
+    rd = s.read(2)
+    s.rts = False
+    log.debug('spi_read_status: 0x%02x' % rd[1])
+    return rd[1]
+
+def spi_wait_idle(s):
+    while True:
+        sr = spi_read_status(s)
+        if (sr & 0x01) == 0x00:
+            return
+
+def spi_write_enable(s):
+    s.rts = True
+    s.write([0x06]); s.flush()
+    s.rts = False
+    s.read(1)
+    sr = spi_read_status(s)
+    if (sr & 0x02) == 0x00:
+        log.error('Cannot enable SPI Write')
+        return False
+    else:
+        log.debug('spi_write_enable')
+    return True
+
+def spi_write_disable(s):
+    s.rts = True
+    s.write([0x04]); s.flush()
+    s.rts = False
+    s.read()
+
+def spi_chip_erase(s):
+    if spi_write_enable(s):
+        s.rts = True
+        s.write([0x60]); s.flush()
+        s.rts = False
+        s.read(1)
+        spi_wait_idle(s)
+        spi_write_disable(s)
+
+def spi_cmd_erase(s, cmd, addr):
+    xfer = [ cmd,
+             (addr >> 16) & 0xff,
+             (addr >>  8) & 0xff,
+              addr        & 0xff ]
+    if spi_write_enable(s):
+        s.rts = True
+        s.write(xfer); s.flush()
+        s.rts = False
+        s.read(4)
+        spi_wait_idle(s)
+        spi_write_disable(s)
+
+def spi_sector_erase(s, addr):
+    spi_cmd_erase(s, 0x20, addr)
+
+def spi_block32_erase(s, addr):
+    spi_cmd_erase(s, 0x52, addr)
+
+def spi_block64_erase(s, addr):
+    spi_cmd_erase(s, 0xd8, addr)
+
+def spi_write(s, addr, data):
+    data.insert(0, addr & 0xff)
+    addr >>= 8
+    data.insert(0, addr & 0xff)
+    addr >>= 8
+    data.insert(0, addr & 0xff)
+    data.insert(0, 0x02) # Page Program command
+
+    l = len(data)
+    spi_wait_idle(s)
+    if spi_write_enable(s):
+        s.rts = True
+        s.write(data); s.flush()
+        s.rts = False
+        s.read(l)
+        spi_wait_idle(s)
+        spi_write_disable(s)
+
+def spi_read(s, addr, count = SERIAL_SPI_BLOCK_SIZE-4):
+    if count >= SERIAL_SPI_BLOCK_SIZE-4:
+        count = SERIAL_SPI_BLOCK_SIZE-4
+    xfer = [0x00 for i in range(count)]
+    xfer.insert(0, addr & 0xff)
+    addr >>= 8
+    xfer.insert(0, addr & 0xff)
+    addr >>= 8
+    xfer.insert(0, addr & 0xff)
+    xfer.insert(0, 0x03) # NORD -- Normal Read
+    s.rts = True
+    s.write(xfer); s.flush()
+    s.rts = False
+    data = s.read(len(xfer))
+    return data[4:]
+
+######################################################################
+# MAIN application
+######################################################################
 
 def main():
     p = argparse.ArgumentParser(description = __doc__)
@@ -193,7 +307,7 @@ def main():
 
     # Always read IDs to know the SPI-NOR chips size
     log.info('Get SPI NOR IDs')
-    spi_ids = get_spi_ids(args.port)
+    spi_ids = spi_get_ids(args.port)
 
     if args.spi_info:
         print_spi_id(spi_ids)
@@ -320,6 +434,23 @@ def main():
     if spi_end_addr >= spi_nor.chip_size:
         log.error('Specified address range is outside of the chip size')
         return 1
+
+    if args.spi_read:
+        with open(args.file, mode='bw') as f:
+            with Serial(args.port) as s:
+                s.rts = False
+                rlen = SERIAL_SPI_BLOCK_SIZE - 4
+                tail = (spi_end_addr - spi_start_addr + 1) % rlen
+                rnum = (spi_end_addr - spi_start_addr + 1) // rlen
+                for p in range(rnum):
+                    b = spi_read(s, p * rlen, rlen)
+                    f.write(bytearray(b))
+                if tail > 0:
+                    if rnum > 0:
+                        b = spi_read(s, rnum * rlen, tail)
+                    else:
+                        b = spi_read(s, spi_start_addr, tail)
+                    f.write(bytearray(b))
 
     return 0
 
