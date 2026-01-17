@@ -211,6 +211,10 @@ def main():
                    dest='spi_execute',
                    help='Do not execute write and erase operations')
 
+    p.add_argument('-N', '--no-hardware',
+                   action='store_true',
+                   help='Do not access hardware (even for read, use mock ID)')
+
     p.add_argument('-c', '--configure',
                    action='store_true',
                    help='Configure FPGA')
@@ -275,6 +279,10 @@ def main():
     else: # >= 2
         log.setLevel(logging.DEBUG)
 
+    if args.no_hardware:
+        spi_execute = False
+        log.debug('No hardware access')
+
     log.debug('Verbosity level: %d', args.verbose)
     log.debug('Serial-to-SPI device: %s', args.port)
 
@@ -294,7 +302,10 @@ def main():
 
     if args.configure:
         log.info('Configure FPGA from file: %s', args.file)
-        load_fpga_config(args.file, args.port)
+        if args.no_hardware:
+            log.warning('No hardware access, operation ignored')
+        else:
+            load_fpga_config(args.file, args.port)
 
     # FPGA configuration with pre-defined SPI bridge configuration.
     # It should be done before access to the SPI-NOR on a Memory module
@@ -303,11 +314,19 @@ def main():
         cfg_dir = os.path.dirname(sys.argv[0])
         cfg_dir = os.path.abspath(cfg_dir) + '/fpga_configs/'
         cfg = cfg_dir + 'spi_bridge_' + args.spi_mem + '.bit'
-        load_fpga_config(cfg, args.port)
+        if args.no_hardware:
+            log.warning('No hardware access, operation ignored')
+        else:
+            load_fpga_config(cfg, args.port)
 
     # Always read IDs to know the SPI-NOR chips size
     log.info('Get SPI NOR IDs')
-    spi_ids = spi_get_ids(args.port)
+    if args.no_hardware:
+        log.warning('No hardware access, use mock IDs')
+        spi_ids = [[0x9d, 0x60, 0x16],
+                   [0x11 * i for i in range(16)]]
+    else:
+        spi_ids = spi_get_ids(args.port)
 
     if args.spi_info:
         print_spi_id(spi_ids)
@@ -437,20 +456,23 @@ def main():
 
     if args.spi_read:
         with open(args.file, mode='bw') as f:
-            with Serial(args.port) as s:
-                s.rts = False
-                rlen = SERIAL_SPI_BLOCK_SIZE - 4
-                tail = (spi_end_addr - spi_start_addr + 1) % rlen
-                rnum = (spi_end_addr - spi_start_addr + 1) // rlen
-                for p in range(rnum):
-                    b = spi_read(s, p * rlen, rlen)
-                    f.write(bytearray(b))
-                if tail > 0:
-                    if rnum > 0:
-                        b = spi_read(s, rnum * rlen, tail)
-                    else:
-                        b = spi_read(s, spi_start_addr, tail)
-                    f.write(bytearray(b))
+            if args.no_hardware:
+                log.warning('No hardware access, operation ignored')
+            else:
+                with Serial(args.port) as s:
+                    s.rts = False
+                    rlen = SERIAL_SPI_BLOCK_SIZE - 4
+                    tail = (spi_end_addr - spi_start_addr + 1) % rlen
+                    rnum = (spi_end_addr - spi_start_addr + 1) // rlen
+                    for p in range(rnum):
+                        b = spi_read(s, p * rlen, rlen)
+                        f.write(bytearray(b))
+                    if tail > 0:
+                        if rnum > 0:
+                            b = spi_read(s, rnum * rlen, tail)
+                        else:
+                            b = spi_read(s, spi_start_addr, tail)
+                        f.write(bytearray(b))
 
     return 0
 
