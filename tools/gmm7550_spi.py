@@ -91,6 +91,11 @@ def print_spi_id(ids):
                  '           UID:')
     print(uid)
 
+def spi_nop(s):
+    s.rst = True
+    s.write([0x00]); s.flush(); s.read(1)
+    s.rst = False
+
 def spi_read_status(s):
     s.rts = True
     s.write([0x05, 0x00])
