@@ -363,6 +363,7 @@ def main():
     else:
         log.error('Unknown Memory Size ID: 0x%02x' % size_id)
         return 2
+    log.debug('SPI chip max address (chip size - 1): 0x%06x' % (spi_nor.chip_size - 1))
 
     #
     # Process adddress arguments
@@ -381,11 +382,25 @@ def main():
         if arg is None:
             return False, 0, None
         else:
+            log.debug('try_addr(\'%s\')' % arg)
             _addrs = arg.split(',')
             if len(_addrs) == 1:
-                return True, int(_addrs[0], 0), None
+                start = int(_addrs[0], 0)
+                log.debug('Start address argument: 0x%06x' % start)
+                return True, start, None
             else:
-                return True, int(_addrs[0], 0), int(_addrs[1], 0)
+                if _addrs[1][0] == '+':
+                    start = int(_addrs[0],0)
+                    diff = int(_addrs[1][1:],0) - 1
+                    log.debug('Start and Len address argument: 0x%06x + %d' % (start, diff))
+                    return True, start, start + diff
+                elif _addrs[1][0].isdigit():
+                    start, end = int(_addrs[0], 0), int(_addrs[1], 0)
+                    log.debug('Start and End address argument: 0x%06x .. 0x%06x' % (start, end))
+                    return True, start, end
+                else:
+                    log.warning('Invalid second component of the address range: \'%s\'', _addrs[1])
+                    return False, 0, None
 
     spi_start, spi_end, unit_size = 0, None, 1
     addr_unit = AddrUnit.undefined
@@ -453,11 +468,15 @@ def main():
     else:
         spi_end_addr = (spi_end + 1) * unit_size - 1
 
-    log.info('SPI NOR address range for operation: 0x%06x..0x%06x' % (spi_start_addr, spi_end_addr))
+    if spi_end_addr < spi_start_addr:
+        log.error('End address should not be smaller than the start address')
+        return 1
 
     if spi_end_addr >= spi_nor.chip_size:
         log.error('Specified address range is outside of the chip size')
         return 1
+
+    log.info('SPI NOR address range for operation: 0x%06x..0x%06x' % (spi_start_addr, spi_end_addr))
 
     if args.spi_read:
         with open(args.file, mode='bw') as f:
