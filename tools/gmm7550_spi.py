@@ -212,8 +212,7 @@ def main():
                    help='Print SPI NOR device info')
 
     p.add_argument('-n', '--dry-run',
-                   action='store_false',
-                   dest='spi_execute',
+                   action='store_true',
                    help='Do not execute write and erase operations')
 
     p.add_argument('-N', '--no-hardware',
@@ -284,12 +283,10 @@ def main():
     else: # >= 2
         log.setLevel(logging.DEBUG)
 
-    if args.no_hardware:
-        spi_execute = False
-        log.debug('No hardware access')
-
     log.debug('Verbosity level: %d', args.verbose)
     log.debug('Serial-to-SPI device: %s', args.port)
+    log.debug('No hardware: %s' % args.no_hardware)
+    log.debug('Dry run: %s' % args.dry_run)
 
     # Basic arguments sanity check
 
@@ -481,7 +478,7 @@ def main():
     if args.spi_read:
         with open(args.file, mode='bw') as f:
             if args.no_hardware:
-                log.warning('No hardware access, operation ignored')
+                log.warning('No hardware access, read operation ignored')
             else:
                 with Serial(args.port) as s:
                     s.rts = False
@@ -497,6 +494,22 @@ def main():
                         else:
                             b = spi_read(s, spi_start_addr, tail)
                         f.write(bytearray(b))
+
+    if args.spi_write:
+        if args.no_hardware:
+            log.warning('No hardware access, write operation ignored')
+        elif args.dry_run:
+            log.warning('Dry run, write operation ignored')
+        else:
+            pass
+
+    if args.spi_erase:
+        if args.no_hardware:
+            log.warning('No hardware access, erase operation ignored')
+        elif args.dry_run:
+            log.warning('Dry run, erase operation ignored')
+        else:
+            pass
 
     return 0
 
