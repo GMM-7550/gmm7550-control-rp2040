@@ -100,18 +100,22 @@ def spi_read_status(s):
     s.rts = True
     s.write([0x05, 0x00])
     s.flush()
-    rd = s.read(2)
     s.rts = False
+    rd = s.read(2)
     log.debug('spi_read_status: 0x%02x' % rd[1])
     return rd[1]
 
 def spi_wait_idle(s):
-    while True:
+    for _ in range(1000):
         sr = spi_read_status(s)
         if (sr & 0x01) == 0x00:
-            return
+            return True
+    log.error('spi_wait_idle() timeout')
+    return False
 
 def spi_write_enable(s):
+    if not spi_wait_idle(s):
+        return
     s.rts = True
     s.write([0x06]); s.flush()
     s.rts = False
@@ -170,7 +174,8 @@ def spi_write(s, addr, data):
     data.insert(0, 0x02) # Page Program command
 
     l = len(data)
-    spi_wait_idle(s)
+    if not spi_wait_idle(s):
+        return
     if spi_write_enable(s):
         s.rts = True
         s.write(data); s.flush()
@@ -320,6 +325,11 @@ def main():
             log.warning('No hardware access, operation ignored')
         else:
             load_fpga_config(cfg, args.port)
+
+    if not (args.spi_info or args.spi_erase or
+            args.spi_read or args.spi_write):
+        # nothing more to do, not even reading ID
+        return 0
 
     # Always read IDs to know the SPI-NOR chips size
     log.info('Get SPI NOR IDs')
@@ -510,15 +520,15 @@ def main():
         else:
             spi_end_addr = (spi_end + 1) * unit_size - 1
 
-        if addr_range_error(spi_start_addr, spi_end_addr):
-            return 1
-
-        if spi_end_addr < spi_start_add + data_len - 1:
+        if spi_end_addr < spi_start_addr + data_len - 1:
             log.error('Data file is bigger that the specified address range')
             return 1
         else:
             spi_end_addr = spi_start_addr + data_len - 1
             log.info('End address is adjusted to the data file size')
+
+        if addr_range_error(spi_start_addr, spi_end_addr):
+            return 1
 
         log.info('Address range for WRITE operation: 0x%06x..0x%06x' % (spi_start_addr, spi_end_addr))
 
@@ -528,37 +538,38 @@ def main():
             log.warning('Dry run, write operation ignored')
         else:
             with Serial(args.port) as s:
-                spi_nop(s);
+                s.baudrate = SERIAL_SPI_SLOW_BIT_RATE
+                spi_nop(s)
                 wlen = SERIAL_SPI_BLOCK_SIZE - 4
                 tail = (spi_end_addr - spi_start_addr + 1) % wlen
                 wnum = (spi_end_addr - spi_start_addr + 1) // wlen
                 for p in range(wnum):
                     spi_write(s, spi_start_addr + p*wlen,
-                              data[p*wlen:(p+1)*wlen])
+                              list(data[p*wlen:(p+1)*wlen]))
                 if tail > 0:
                     if wnum > 0:
-                        spi_write(s, wnum * wlen, data[wnum*wlen:])
+                        spi_write(s, wnum * wlen, list(data[wnum*wlen:]))
                     else:
-                        spi_write(s, spi_start_addr, data)
+                        spi_write(s, spi_start_addr, list(data))
+
+                s.baudrate = SERIAL_SPI_DEFAULT_BIT_RATE
+                spi_nop(s)
 
     if args.spi_erase:
         # Adjust addresses to the minimal erasable unit size -- sector
-        if spi_start_addr % spi_nor.sector_size:
-            a = (spi_start_addr // spi_nor.sector_size) * spi_nor.sector_size
-            log.warning('Start address for erase operation is adjusted to the sector start: 0x%06x -> 0x%06x' %
-                        (spi_start_addr, a))
-            spi_start_addr = a
+        a = (spi_start_addr // spi_nor.sector_size) * spi_nor.sector_size
+        log.info('Start address for erase operation is adjusted to the sector start: 0x%06x -> 0x%06x' %
+                    (spi_start_addr, a))
+        spi_start_addr = a
 
         if spi_end is None:
-            spi_end_addr = spi_start_addr
-        else:
-            spi_end_addr = (spi_end + 1) * unit_size - 1
+            spi_end = 0
+        spi_end_addr = (spi_end + 1) * unit_size - 1
 
-        if spi_end_addr % spi_nor.sector_size:
-            a = (spi_end_addr // spi_nor.sector_size + 1) * spi_nor.sector_size - 1
-            log.warning('End address for erase operation is adjusted to the sector end: 0x%06x -> 0x%06x' %
-                        (spi_end_addr, a))
-            spi_end_addr = a
+        a = (spi_end_addr // spi_nor.sector_size + 1) * spi_nor.sector_size - 1
+        log.info('End address for erase operation is adjusted to the sector end: 0x%06x -> 0x%06x' %
+                    (spi_end_addr, a))
+        spi_end_addr = a
 
         if addr_range_error(spi_start_addr, spi_end_addr):
             return 1
@@ -570,26 +581,30 @@ def main():
         elif args.dry_run:
             log.warning('Dry run, erase operation ignored')
         else:
-            with Serial.args(port) as s:
+            with Serial(args.port) as s:
+                s.baudrate = SERIAL_SPI_SLOW_BIT_RATE
+                spi_nop(s)
                 if args.spi_chip:
+                    log.debug('Erase chip')
                     spi_chip_erase(s)
                 else:
                     addr = spi_start_addr
                     while addr < spi_end_addr:
                         if ((addr % spi_nor.block64_size == 0) and
-                            (addr + spi_nor.block64_size) <= spi_end_addr):
+                            (addr + spi_nor.block64_size - 1) <= spi_end_addr):
                             log.debug('Erase 64K block at address 0x%06x' % addr)
-                            spi_erase_block64(s, addr)
+                            spi_block64_erase(s, addr)
                             addr += spi_nor.block64_size
                         elif ((addr % spi_nor.block32_size == 0) and
-                              (addr + spi_nor.block32_size) <= spi_end_addr):
+                              (addr + spi_nor.block32_size - 1) <= spi_end_addr):
                             log.debug('Erase 32K block at address 0x%06x' % addr)
-                            spi_erase_block32(s, addr)
+                            spi_block32_erase(s, addr)
                             addr += spi_nor.block32_size
                         else:
                             log.debug('Erase sector at address 0x%06x' % addr)
-                            spi_erase_sector(s, addr)
+                            spi_sector_erase(s, addr)
                             addr += spi_nor.sector_size
+                s.baudrate = SERIAL_SPI_DEFAULT_BIT_RATE
 
     return 0
 
