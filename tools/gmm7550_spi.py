@@ -459,6 +459,17 @@ def main():
         return 1
 
     spi_start_addr = spi_start * unit_size
+    spi_end_addr   = spi_start_addr # will be redefined later, depending on the requested operation
+
+    # Common address range checks
+    def addr_range_error(start, end):
+        if end < start:
+            log.error('End address should not be smaller than the start address')
+            return True
+        if end >= spi_nor.chip_size:
+            log.error('Specified address range is outside of the chip size')
+            return True
+        return False # OK
 
     if args.spi_read:
         if spi_end is None:
@@ -466,44 +477,11 @@ def main():
         else:
             spi_end_addr = (spi_end + 1) * unit_size - 1
 
-    if args.spi_erase:
-        # Adjust addresses to the minimal erasable unit size -- sector
-        if spi_start_addr % spi_nor.sector_size:
-            a = (spi_start_addr // spi_nor.sector_size) * spi_nor.sector_size
-            log.warning('Start address for erase operation is adjusted to the sector start: 0x%06x -> 0x%06x' %
-                        (spi_start_addr, a))
-            spi_start_addr = a
+        if addr_range_error(spi_start_addr, spi_end_addr):
+            return 1
 
-        if spi_end is None:
-            spi_end_addr = spi_start_addr
-        else:
-            spi_end_addr = (spi_end + 1) * unit_size - 1
+        log.info('Address range for READ operation: 0x%06x..0x%06x' % (spi_start_addr, spi_end_addr))
 
-        if spi_end_addr % spi_nor.sector_size:
-            a = (spi_end_addr // spi_nor.sector_size + 1) * spi_nor.sector_size - 1
-            log.warning('End address for erase operation is adjusted to the sector end: 0x%06x -> 0x%06x' %
-                        (spi_end_addr, a))
-            spi_end_addr = a
-
-    if args.spi_write:
-        if spi_end is None:
-            # end address will be re-calculated from the data file size later
-            # define it here for debug output only
-            spi_end_addr = spi_start_addr
-        else:
-            spi_end_addr = (spi_end + 1) * unit_size - 1
-
-    if spi_end_addr < spi_start_addr:
-        log.error('End address should not be smaller than the start address')
-        return 1
-
-    if spi_end_addr >= spi_nor.chip_size:
-        log.error('Specified address range is outside of the chip size')
-        return 1
-
-    log.info('SPI NOR address range for operation: 0x%06x..0x%06x' % (spi_start_addr, spi_end_addr))
-
-    if args.spi_read:
         with open(args.file, mode='bw') as f:
             if args.no_hardware:
                 log.warning('No hardware access, read operation ignored')
@@ -526,19 +504,23 @@ def main():
     if args.spi_write:
         data = open(args.file, mode='br').read()
         data_len = len(data)
-        if spi_end is None:
-            # Check if there is a sufficient space to the end of the chip
-            spi_end_addr = spi_start_addr + data_len - 1
-            if spi_end_addr >= spi_nor.chip_size:
-                log.error('Not enough space for data till the end of the SPI NOR chip')
-                return 1
 
-        if spi_start_add + data_len > spi_end_addr:
+        if spi_end is None:
+            spi_end_addr = spi_start_addr + data_len - 1
+        else:
+            spi_end_addr = (spi_end + 1) * unit_size - 1
+
+        if addr_range_error(spi_start_addr, spi_end_addr):
+            return 1
+
+        if spi_end_addr < spi_start_add + data_len - 1:
             log.error('Data file is bigger that the specified address range')
             return 1
         else:
             spi_end_addr = spi_start_addr + data_len - 1
-            log.info('End address is adjusted to the size of data: 0x%06x' % spi_end_addr)
+            log.info('End address is adjusted to the data file size')
+
+        log.info('Address range for WRITE operation: 0x%06x..0x%06x' % (spi_start_addr, spi_end_addr))
 
         if args.no_hardware:
             log.warning('No hardware access, write operation ignored')
@@ -560,6 +542,29 @@ def main():
                         spi_write(s, spi_start_addr, data)
 
     if args.spi_erase:
+        # Adjust addresses to the minimal erasable unit size -- sector
+        if spi_start_addr % spi_nor.sector_size:
+            a = (spi_start_addr // spi_nor.sector_size) * spi_nor.sector_size
+            log.warning('Start address for erase operation is adjusted to the sector start: 0x%06x -> 0x%06x' %
+                        (spi_start_addr, a))
+            spi_start_addr = a
+
+        if spi_end is None:
+            spi_end_addr = spi_start_addr
+        else:
+            spi_end_addr = (spi_end + 1) * unit_size - 1
+
+        if spi_end_addr % spi_nor.sector_size:
+            a = (spi_end_addr // spi_nor.sector_size + 1) * spi_nor.sector_size - 1
+            log.warning('End address for erase operation is adjusted to the sector end: 0x%06x -> 0x%06x' %
+                        (spi_end_addr, a))
+            spi_end_addr = a
+
+        if addr_range_error(spi_start_addr, spi_end_addr):
+            return 1
+
+        log.info('Address range for ERASE operation: 0x%06x..0x%06x' % (spi_start_addr, spi_end_addr))
+
         if args.no_hardware:
             log.warning('No hardware access, erase operation ignored')
         elif args.dry_run:
