@@ -497,6 +497,7 @@ def main():
                 log.warning('No hardware access, read operation ignored')
             else:
                 with Serial(args.port) as s:
+                    s.baudrate = SERIAL_SPI_SLOW_BIT_RATE
                     spi_nop(s)
                     rlen = SERIAL_SPI_BLOCK_SIZE - 4
                     tail = (spi_end_addr - spi_start_addr + 1) % rlen
@@ -510,6 +511,8 @@ def main():
                         else:
                             b = spi_read(s, spi_start_addr, tail)
                         f.write(bytearray(b))
+                    s.baudrate = SERIAL_SPI_DEFAULT_BIT_RATE
+                    spi_nop(s)
 
     if args.spi_write:
         data = open(args.file, mode='br').read()
@@ -540,18 +543,18 @@ def main():
             with Serial(args.port) as s:
                 s.baudrate = SERIAL_SPI_SLOW_BIT_RATE
                 spi_nop(s)
-                wlen = SERIAL_SPI_BLOCK_SIZE - 4
-                tail = (spi_end_addr - spi_start_addr + 1) % wlen
-                wnum = (spi_end_addr - spi_start_addr + 1) // wlen
-                for p in range(wnum):
-                    spi_write(s, spi_start_addr + p*wlen,
-                              list(data[p*wlen:(p+1)*wlen]))
-                if tail > 0:
-                    if wnum > 0:
-                        spi_write(s, wnum * wlen, list(data[wnum*wlen:]))
-                    else:
-                        spi_write(s, spi_start_addr, list(data))
-
+                addr = spi_start_addr
+                while addr <= spi_end_addr:
+                    wlen = SERIAL_SPI_BLOCK_SIZE - 4
+                    if addr + wlen - 1 > spi_end_addr:
+                        wlen = spi_end_addr - addr + 1
+                    s_page = addr // spi_nor.page_size
+                    e_page = (addr + wlen - 1) // spi_nor.page_size
+                    if e_page != s_page:
+                        wlen = spi_nor.page_size - (addr % spi_nor.page_size)
+                    log.debug('spi_write() address: 0x%06x length: %d' % (addr, wlen))
+                    spi_write(s, addr, list(data[addr:addr+wlen]))
+                    addr += wlen
                 s.baudrate = SERIAL_SPI_DEFAULT_BIT_RATE
                 spi_nop(s)
 
