@@ -55,6 +55,7 @@ add_executable(${TARGET_NAME}
     src/i2c.c
     src/spi.c
     src/pll.c
+    src/adc.c
     freertos-plus-cli/FreeRTOS_CLI.c
     )
 
@@ -71,6 +72,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE
     pico_bootrom
     hardware_i2c
     hardware_spi
+    hardware_adc
     freertos_kernel
     tinyusb
     tinyusb_bsp

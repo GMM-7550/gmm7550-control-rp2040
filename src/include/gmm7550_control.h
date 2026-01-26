@@ -13,7 +13,7 @@
 #ifndef _GMM7550_CONTROL_H_
 #define _GMM7550_CONTROL_H_
 
-#define GMM7550_CONTROL_VERSION "0.6.7"
+#define GMM7550_CONTROL_VERSION "0.7.0"
 
 #define GREEN_LED_PIN 0 /* GPIO 25 on Pico-based prototype, 0 on a final h/w */
 
@@ -80,5 +80,13 @@ extern void gmm7550_spi_init(void);
 extern void gmm7550_spi_set_baudrate(const uint rate);
 extern void gmm7550_spi_set_cs(const bool cs);
 extern volatile bool spi_connected;
+
+/* adc.c */
+#define GMM7550_ADC_VREF     (3.0f)
+#define GMM7550_ADC_V_PIN    26
+#define GMM7550_ADC_I_PIN    27
+#define GMM7550_ADC_INPUT(x) ((x) - 26)
+#define GMM7550_ADC_INPUT_T  4
+extern void cli_register_adc(void);
 
 #endif

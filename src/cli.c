@@ -140,6 +140,7 @@ void cli_task(__unused void *params)
   cli_register_gpio();
   cli_register_i2c();
   cli_register_pll();
+  cli_register_adc();
   FreeRTOS_CLIRegisterCommand(&bootsel_cmd);
   FreeRTOS_CLIRegisterCommand(&version_cmd);
 
