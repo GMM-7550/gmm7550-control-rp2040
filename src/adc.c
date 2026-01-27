@@ -9,8 +9,8 @@
 #define ADC_SHORT_HELP "adc [v|i|t]\n"
 
 static const float adc_coef = GMM7550_ADC_VREF / ((float)(1<<12));
-static const float i_conv = adc_coef * 1000.f; /* 1V   -> 1000 mA */
-static const float v_conv = adc_coef * 2.2f;   /* 2.5V -> 5.5V (120kOhm / 100kOhm divider) */
+static const float i_conv = adc_coef;        /* 1V   -> 1A */
+static const float v_conv = adc_coef * 2.2f; /* 2.5V -> 5.5V (120kOhm / 100kOhm divider) */
 
 static char *uint16_to_hex(char *p, const uint16_t d)
 {
@@ -42,14 +42,14 @@ static BaseType_t cli_adc(char *pcWriteBuffer,
         reg = adc_read();
         val = reg * v_conv;
         snprintf(pcWriteBuffer, xWriteBufferLen,
-                 "V = %f V (0x%03x)\n", val, reg);
+                 "V = %1.2f V (0x%03x)\n", val, reg);
         break;
       case 'i':
         adc_select_input(GMM7550_ADC_INPUT(GMM7550_ADC_I_PIN));
         reg = adc_read();
         val = reg * i_conv;
         snprintf(pcWriteBuffer, xWriteBufferLen,
-                 "I = %f mA (0x%03x)\n", val, reg);
+                 "I = %1.3f A (0x%03x)\n", val, reg);
         break;
       case 't':
         adc_select_input(GMM7550_ADC_INPUT_T);
@@ -57,7 +57,7 @@ static BaseType_t cli_adc(char *pcWriteBuffer,
         val = reg * adc_coef;
         val = 27. - (val - 0.706) / 0.001721;
         snprintf(pcWriteBuffer, xWriteBufferLen,
-                 "T = %f (0x%03x)\n", val, reg);
+                 "T = %2.1f (0x%03x)\n", val, reg);
         break;
       default:
         strncpy(pcWriteBuffer, "ADC command argument should be 'v', 'i' or 't'", xWriteBufferLen);
@@ -84,6 +84,12 @@ static BaseType_t cli_adc(char *pcWriteBuffer,
     case 2:
       strncpy(pcWriteBuffer,
               "  i -- Current\n",
+              xWriteBufferLen);
+      line++;
+      break;
+    case 3:
+      strncpy(pcWriteBuffer,
+              "  t -- Temperature\n",
               xWriteBufferLen);
       line++;
       break;
