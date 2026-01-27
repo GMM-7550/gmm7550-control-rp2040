@@ -109,5 +109,6 @@ void cli_register_adc(void)
   adc_init();
   adc_gpio_init(GMM7550_ADC_V_PIN);
   adc_gpio_init(GMM7550_ADC_I_PIN);
+  adc_set_temp_sensor_enabled(true);
   FreeRTOS_CLIRegisterCommand(&adc_cmd);
 }
