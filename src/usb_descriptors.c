@@ -36,8 +36,10 @@
 #define USB_PID           (0x4000 | _PID_MAP(CDC, 0) | _PID_MAP(MSC, 1) | _PID_MAP(HID, 2) | \
                            _PID_MAP(MIDI, 3) | _PID_MAP(VENDOR, 4) )
 
-#define USB_VID   0xCafe
-#define USB_BCD   0x0200
+/* Pretend it is DirtyJTAG
+ */
+#define USB_VID   0x1209
+#define USB_BCD   0xC0CA
 
 //--------------------------------------------------------------------+
 // Device Descriptors
@@ -77,7 +79,8 @@ uint8_t const *tud_descriptor_device_cb(void) {
 //--------------------------------------------------------------------+
 
 enum {
-  ITF_NUM_CDC_0 = 0,
+  ITF_NUM_PROBE = 0,
+  ITF_NUM_CDC_0,
   ITF_NUM_CDC_0_DATA,
   ITF_NUM_CDC_1,
   ITF_NUM_CDC_1_DATA,
@@ -86,29 +89,33 @@ enum {
   ITF_NUM_TOTAL
 };
 
-#define EPNUM_CDC_0_NOTIF   0x81
-#define EPNUM_CDC_0_OUT     0x02
-#define EPNUM_CDC_0_IN      0x82
+#define EPNUM_PROBE_OUT     0x01
+#define EPNUM_PROBE_IN      0x82
 
-#define EPNUM_CDC_1_NOTIF   0x83
-#define EPNUM_CDC_1_OUT     0x04
-#define EPNUM_CDC_1_IN      0x84
+#define EPNUM_CDC_0_NOTIF   0x83
+#define EPNUM_CDC_0_OUT     0x04
+#define EPNUM_CDC_0_IN      0x84
 
-#define EPNUM_CDC_2_NOTIF   0x85
-#define EPNUM_CDC_2_OUT     0x06
-#define EPNUM_CDC_2_IN      0x86
+#define EPNUM_CDC_1_NOTIF   0x85
+#define EPNUM_CDC_1_OUT     0x06
+#define EPNUM_CDC_1_IN      0x86
 
-#define CONFIG_TOTAL_LEN    (TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN * CFG_TUD_CDC)
+#define EPNUM_CDC_2_NOTIF   0x87
+#define EPNUM_CDC_2_OUT     0x08
+#define EPNUM_CDC_2_IN      0x88
+
+#define CONFIG_TOTAL_LEN    (TUD_CONFIG_DESC_LEN + TUD_VENDOR_DESC_LEN + TUD_CDC_DESC_LEN * CFG_TUD_CDC)
 
 uint8_t const desc_fs_configuration[] =
 {
   // Config number, interface count, string index, total length, attribute, power in mA
   TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, CONFIG_TOTAL_LEN, 0x00, 100),
 
+  TUD_VENDOR_DESCRIPTOR(ITF_NUM_PROBE, 4, EPNUM_PROBE_OUT, EPNUM_PROBE_IN, 64),
   // Interface number, string index, EP notification address and size, EP data address (out, in) and size.
-  TUD_CDC_DESCRIPTOR(ITF_NUM_CDC_0, 4, EPNUM_CDC_0_NOTIF, 8, EPNUM_CDC_0_OUT, EPNUM_CDC_0_IN, 64),
-  TUD_CDC_DESCRIPTOR(ITF_NUM_CDC_1, 5, EPNUM_CDC_1_NOTIF, 8, EPNUM_CDC_1_OUT, EPNUM_CDC_1_IN, 64),
-  TUD_CDC_DESCRIPTOR(ITF_NUM_CDC_2, 6, EPNUM_CDC_2_NOTIF, 8, EPNUM_CDC_2_OUT, EPNUM_CDC_2_IN, 64),
+  TUD_CDC_DESCRIPTOR(ITF_NUM_CDC_0, 5, EPNUM_CDC_0_NOTIF, 8, EPNUM_CDC_0_OUT, EPNUM_CDC_0_IN, 64),
+  TUD_CDC_DESCRIPTOR(ITF_NUM_CDC_1, 6, EPNUM_CDC_1_NOTIF, 8, EPNUM_CDC_1_OUT, EPNUM_CDC_1_IN, 64),
+  TUD_CDC_DESCRIPTOR(ITF_NUM_CDC_2, 7, EPNUM_CDC_2_NOTIF, 8, EPNUM_CDC_2_OUT, EPNUM_CDC_2_IN, 64),
 };
 
 // Invoked when received GET CONFIGURATION DESCRIPTOR
@@ -136,12 +143,13 @@ enum {
 char const *string_desc_arr[] =
 {
   (const char[]) { 0x09, 0x04 }, // 0: is supported language is English (0x0409)
-  "TinyUSB",                     // 1: Manufacturer
-  "TinyUSB Device",              // 2: Product
+  "GMM-7550 Project",            // 1: Manufacturer
+  "USB3 Adapter Board",          // 2: Product
   NULL,                          // 3: Serials will use unique ID if possible
-  "GMM-7550 serial",             // 4: CDC Interface
-  "Control CLI",                 // 5: CDC Interface
-  "GMM-7550 SPI",                // 6: CDC Interface
+  "DirtyJTAG probe",             // 4: Vendor interface (DirtyJTAG protocol)
+  "GMM-7550 serial",             // 5: CDC Interface
+  "Control CLI",                 // 6: CDC Interface
+  "GMM-7550 SPI",                // 7: CDC Interface
 };
 
 static uint16_t _desc_str[32 + 1];

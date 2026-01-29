@@ -37,4 +37,4 @@ dmesg:
   sudo dmesg | grep -i usb | tail -20
 
 lsusb:
-  sudo lsusb -d cafe: -v
+  sudo lsusb -d 1209: -v
