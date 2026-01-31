@@ -26,20 +26,10 @@
 #include "bsp/board_api.h"
 #include "tusb.h"
 
-/* A combination of interfaces must have a unique product id, since PC will save device driver after the first plug.
- * Same VID/PID with different interface e.g MSC (first), then CDC (later) will possibly cause system error on PC.
- *
- * Auto ProductID layout's Bitmap:
- *   [MSB]         HID | MSC | CDC          [LSB]
- */
-#define _PID_MAP(itf, n)  ( (CFG_TUD_##itf) << (n) )
-#define USB_PID           (0x4000 | _PID_MAP(CDC, 0) | _PID_MAP(MSC, 1) | _PID_MAP(HID, 2) | \
-                           _PID_MAP(MIDI, 3) | _PID_MAP(VENDOR, 4) )
-
 /* Pretend it is DirtyJTAG
  */
 #define USB_VID   0x1209
-#define USB_BCD   0xC0CA
+#define USB_PID   0xC0CA
 
 //--------------------------------------------------------------------+
 // Device Descriptors
@@ -47,7 +37,7 @@
 tusb_desc_device_t const desc_device = {
     .bLength            = sizeof(tusb_desc_device_t),
     .bDescriptorType    = TUSB_DESC_DEVICE,
-    .bcdUSB             = USB_BCD,
+    .bcdUSB             = 0x0200,
 
     // Use Interface Association Descriptor (IAD) for CDC
     // As required by USB Specs IAD's subclass must be common class (2) and protocol must be IAD (1)
@@ -59,7 +49,7 @@ tusb_desc_device_t const desc_device = {
 
     .idVendor           = USB_VID,
     .idProduct          = USB_PID,
-    .bcdDevice          = 0x0100,
+    .bcdDevice          = 0x0200,
 
     .iManufacturer      = 0x01,
     .iProduct           = 0x02,
@@ -109,7 +99,7 @@ enum {
 uint8_t const desc_fs_configuration[] =
 {
   // Config number, interface count, string index, total length, attribute, power in mA
-  TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, CONFIG_TOTAL_LEN, 0x00, 100),
+  TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, CONFIG_TOTAL_LEN, 0x00, 500),
 
   TUD_VENDOR_DESCRIPTOR(ITF_NUM_PROBE, 4, EPNUM_PROBE_OUT, EPNUM_PROBE_IN, 64),
   // Interface number, string index, EP notification address and size, EP data address (out, in) and size.
