@@ -56,6 +56,7 @@ add_executable(${TARGET_NAME}
     src/spi.c
     src/pll.c
     src/adc.c
+    src/jtag.c
     freertos-plus-cli/FreeRTOS_CLI.c
     )
 

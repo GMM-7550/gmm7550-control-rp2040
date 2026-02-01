@@ -47,6 +47,7 @@ int main(void)
 
   serial_init(NULL);
   gmm7550_spi_init();
+  gmm7550_jtag_init();
 
   xTaskCreate(blink_task, "Blink",
               configMINIMAL_STACK_SIZE, /* stack size */

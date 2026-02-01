@@ -89,4 +89,11 @@ extern volatile bool spi_connected;
 #define GMM7550_ADC_INPUT_T  4
 extern void cli_register_adc(void);
 
+/* jtag.c */
+#define GMM7550_JTAG_TDI_PIN 16
+#define GMM7550_JTAG_TCK_PIN 17
+#define GMM7550_JTAG_TDO_PIN 18
+#define GMM7550_JTAG_TMS_PIN 19
+extern void gmm7550_jtag_init(void);
+
 #endif
