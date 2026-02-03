@@ -57,8 +57,12 @@ add_executable(${TARGET_NAME}
     src/pll.c
     src/adc.c
     src/jtag.c
+    djtag/cmd.c
+    djtag/pio_jtag.c
     freertos-plus-cli/FreeRTOS_CLI.c
     )
+
+pico_generate_pio_header(${TARGET_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/djtag/jtag.pio)
 
 target_include_directories(${TARGET_NAME} PRIVATE
    freertos-plus-cli
@@ -74,6 +78,8 @@ target_link_libraries(${TARGET_NAME} PRIVATE
     hardware_i2c
     hardware_spi
     hardware_adc
+    hardware_pio
+    hardware_dma
     freertos_kernel
     tinyusb
     tinyusb_bsp
