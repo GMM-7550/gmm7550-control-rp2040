@@ -66,6 +66,7 @@ pico_generate_pio_header(${TARGET_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/djtag/jtag.p
 
 target_include_directories(${TARGET_NAME} PRIVATE
    freertos-plus-cli
+   djtag
 )
 
 target_compile_definitions(${TARGET_NAME} PRIVATE

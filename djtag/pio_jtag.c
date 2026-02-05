@@ -25,54 +25,21 @@
 
 #include <hardware/clocks.h>
 #include "hardware/dma.h"
-#include "dirtyJtagConfig.h"
+#include "gmm7550_control.h"
 #include "pio_jtag.h"
 #include "jtag.pio.h"
 
-void jtag_task();//to process USB OUT packets while waiting for DMA to finish
-
-#define DMA
+// void jtag_task();//to process USB OUT packets while waiting for DMA to finish
 
 static bool last_tdo = false;
-
-#if 0
-static bool pins_source = false; //false: PIO, true: GPIO
-
-static void switch_pins_source(const pio_jtag_inst_t *jtag, bool gpio)
-{
-    if (pins_source != gpio)
-    {
-        if (gpio)
-        {
-            gpio_put(jtag->pin_tdi, gpio_get(jtag->pin_tdi));
-            gpio_set_function(jtag->pin_tdi, GPIO_FUNC_SIO);
-            gpio_put(jtag->pin_tck, gpio_get(jtag->pin_tck));
-            gpio_set_function(jtag->pin_tck, GPIO_FUNC_SIO);
-            gpio_set_dir_out_masked((1 << jtag->pin_tdi) | (1 << jtag->pin_tck));
-        }
-        else
-        {
-            gpio_set_function(jtag->pin_tdi, GPIO_FUNC_PIO0);
-            gpio_set_function(jtag->pin_tck, GPIO_FUNC_PIO0);
-        }
-        pins_source = gpio;
-    }
-}
-#endif
-
-
-
-#ifdef DMA
 
 static int tx_dma_chan = -1;
 static int rx_dma_chan;
 static dma_channel_config tx_c;
 static dma_channel_config rx_c;
-#endif
 
-void dma_init()
+static void dma_init()
 {
-#ifdef DMA
     if (tx_dma_chan == -1)
     {
         // Configure a channel to write a buffer to PIO0
@@ -107,12 +74,10 @@ void dma_init()
             false             // Don't start yet
             );
     }
-#endif
-
 }
 
 
-void __time_critical_func(pio_jtag_write_blocking)(const pio_jtag_inst_t *jtag, const uint8_t *bsrc, size_t len) 
+void __time_critical_func(pio_jtag_write_blocking)(const pio_jtag_inst_t *jtag, const uint8_t *bsrc, size_t len)
 {
     size_t byte_length = (len+7 >> 3);
     size_t last_shift = ((byte_length << 3) - len);
@@ -122,7 +87,7 @@ void __time_critical_func(pio_jtag_write_blocking)(const pio_jtag_inst_t *jtag, 
     uint8_t x; // scratch local to receive data
     //kick off the process by sending the len to the tx pipeline
     *(io_rw_32*)txfifo = len-1;
-#ifdef DMA
+
     if (byte_length > 4)
     {
         dma_init();
@@ -134,16 +99,16 @@ void __time_critical_func(pio_jtag_write_blocking)(const pio_jtag_inst_t *jtag, 
         dma_channel_transfer_from_buffer_now(tx_dma_chan, (void*)bsrc, tx_remain);
         while (dma_channel_is_busy(rx_dma_chan))
         {
-            jtag_task();
-            tight_loop_contents();
+          vTaskDelay(1);
+          // jtag_task();
+          // tight_loop_contents();
         }
         // stop the compiler hoisting a non volatile buffer access above the DMA completion.
         __compiler_memory_barrier();
     }
     else
-#endif
     {
-        while (tx_remain || rx_remain) 
+        while (tx_remain || rx_remain)
         {
             if (tx_remain && !pio_sm_is_tx_fifo_full(jtag->pio, jtag->sm))
             {
@@ -161,7 +126,7 @@ void __time_critical_func(pio_jtag_write_blocking)(const pio_jtag_inst_t *jtag, 
 }
 
 void __time_critical_func(pio_jtag_write_read_blocking)(const pio_jtag_inst_t *jtag, const uint8_t *bsrc, uint8_t *bdst,
-                                                         size_t len) 
+                                                         size_t len)
 {
     size_t byte_length = (len+7 >> 3);
     size_t last_shift = ((byte_length << 3) - len);
@@ -171,7 +136,7 @@ void __time_critical_func(pio_jtag_write_read_blocking)(const pio_jtag_inst_t *j
     io_rw_8 *rxfifo = (io_rw_8 *) &jtag->pio->rxf[jtag->sm];
     //kick off the process by sending the len to the tx pipeline
     *(io_rw_32*)txfifo = len-1;
-#ifdef DMA
+
     if (byte_length > 4)
     {
         dma_init();
@@ -183,16 +148,16 @@ void __time_critical_func(pio_jtag_write_read_blocking)(const pio_jtag_inst_t *j
         dma_channel_transfer_from_buffer_now(tx_dma_chan, (void*)bsrc, tx_remain);
         while (dma_channel_is_busy(rx_dma_chan))
         {
-            jtag_task();
-            tight_loop_contents();
+          vTaskDelay(1);
+          //  jtag_task();
+          //  tight_loop_contents();
         }
         // stop the compiler hoisting a non volatile buffer access above the DMA completion.
         __compiler_memory_barrier();
     }
     else
-#endif
     {
-        while (tx_remain || rx_remain) 
+        while (tx_remain || rx_remain)
         {
             if (tx_remain && !pio_sm_is_tx_fifo_full(jtag->pio, jtag->sm))
             {
@@ -226,9 +191,9 @@ uint8_t __time_critical_func(pio_jtag_write_tms_blocking)(const pio_jtag_inst_t 
     gpio_put(jtag->pin_tms, tms);
     //kick off the process by sending the len to the tx pipeline
     *(io_rw_32*)txfifo = len-1;
-#ifdef DMA
+
     if (byte_length > 4)
-    {   
+    {
         dma_init();
         channel_config_set_read_increment(&tx_c, false);
         channel_config_set_write_increment(&rx_c, false);
@@ -238,23 +203,23 @@ uint8_t __time_critical_func(pio_jtag_write_tms_blocking)(const pio_jtag_inst_t 
         dma_channel_transfer_from_buffer_now(tx_dma_chan, (void*)&tdi_word, tx_remain);
         while (dma_channel_is_busy(rx_dma_chan))
         {
-            jtag_task();
-            tight_loop_contents();
+          vTaskDelay(1);
+          //  jtag_task();
+          //  tight_loop_contents();
         }
         // stop the compiler hoisting a non volatile buffer access above the DMA completion.
         __compiler_memory_barrier();
     }
     else
-#endif
     {
-        while (tx_remain || rx_remain) 
+        while (tx_remain || rx_remain)
         {
-            if (tx_remain && !pio_sm_is_tx_fifo_full(jtag->pio, jtag->sm)) 
+            if (tx_remain && !pio_sm_is_tx_fifo_full(jtag->pio, jtag->sm))
             {
                 *txfifo = tdi_word;
                 --tx_remain;
             }
-            if (rx_remain && !pio_sm_is_rx_fifo_empty(jtag->pio, jtag->sm)) 
+            if (rx_remain && !pio_sm_is_rx_fifo_empty(jtag->pio, jtag->sm))
             {
                 x = *rxfifo;
                 --rx_remain;
@@ -267,18 +232,10 @@ uint8_t __time_critical_func(pio_jtag_write_tms_blocking)(const pio_jtag_inst_t 
 
 static void init_pins(uint pin_tck, uint pin_tdi, uint pin_tdo, uint pin_tms, uint pin_rst, uint pin_trst)
 {
-    #if !( BOARD_TYPE == BOARD_QMTECH_RP2040_DAUGHTERBOARD )
-    // emulate open drain with pull up and direction
-    gpio_pull_up(pin_rst);
-    gpio_clr_mask((1u << pin_tms) | (1u << pin_rst) | (1u << pin_trst));
-    gpio_init_mask((1u << pin_tms) | (1u << pin_rst) | (1u << pin_trst));
-    gpio_set_dir_masked( (1u << pin_tms) | (1u << pin_trst), 0xffffffffu);
-    gpio_set_dir(pin_rst, false);
-    #else
     gpio_clr_mask((1u << pin_tms));
     gpio_init_mask((1u << pin_tms));
     gpio_set_dir_masked( (1u << pin_tms), 0xffffffffu);
-    #endif
+
     gpio_init(pin_tdo);
     gpio_set_dir(pin_tdo, false);
 }
@@ -290,10 +247,6 @@ void init_jtag(pio_jtag_inst_t* jtag, uint freq, uint pin_tck, uint pin_tdi, uin
     jtag->pin_tdo = pin_tdo;
     jtag->pin_tck = pin_tck;
     jtag->pin_tms = pin_tms;
-    #if !( BOARD_TYPE == BOARD_QMTECH_RP2040_DAUGHTERBOARD )
-    jtag->pin_rst = pin_rst;
-    jtag->pin_trst = pin_trst;
-    #endif
     uint16_t clkdiv = 31;  // around 1 MHz @ 125MHz clk_sys
     pio_jtag_init(jtag->pio, jtag->sm,
                     clkdiv,
@@ -309,7 +262,7 @@ void jtag_set_clk_freq(const pio_jtag_inst_t *jtag, uint freq_khz) {
     uint clk_sys_freq_khz = clock_get_hz(clk_sys) / 1000;
     float divf = (float)clk_sys_freq_khz / (freq_khz * 4);
     uint16_t divider = (divf > (int)divf) ? (int)divf + 1 : (int)divf;
-    divider = (divider < 2) ? 2 : divider; //max reliable freq 
+    divider = (divider < 2) ? 2 : divider; //max reliable freq
     pio_sm_set_clkdiv_int_frac(pio0, jtag->sm, divider, 0);
 }
 
@@ -322,7 +275,6 @@ void jtag_transfer(const pio_jtag_inst_t *jtag, uint32_t length, const uint8_t* 
         pio_jtag_write_read_blocking(jtag, in, out, length);
     else
         pio_jtag_write_blocking(jtag, in, length);
-
 }
 
 uint8_t jtag_strobe(const pio_jtag_inst_t *jtag, uint32_t length, bool tms, bool tdi)
@@ -332,8 +284,6 @@ uint8_t jtag_strobe(const pio_jtag_inst_t *jtag, uint32_t length, bool tms, bool
     else
         return pio_jtag_write_tms_blocking(jtag, tdi, tms, length);
 }
-
-
 
 static uint8_t toggle_bits_out_buffer[4];
 static uint8_t toggle_bits_in_buffer[4];
@@ -355,5 +305,3 @@ bool jtag_get_tdo(const pio_jtag_inst_t *jtag)
 {
     return last_tdo;
 }
-
-
