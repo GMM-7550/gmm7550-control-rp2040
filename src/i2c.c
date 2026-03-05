@@ -49,7 +49,7 @@ static bool config_is_safe(uint8_t b)
   return true;
 }
 
-static void gmm7550_i2c_gpio_init(void)
+void gmm7550_i2c_gpio_init(void)
 {
   if (!i2c_gpio_initialized) {
     /* output port 0 */

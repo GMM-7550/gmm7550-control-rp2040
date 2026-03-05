@@ -13,7 +13,7 @@
 #ifndef _GMM7550_CONTROL_H_
 #define _GMM7550_CONTROL_H_
 
-#define GMM7550_CONTROL_VERSION "0.8.1"
+#define GMM7550_CONTROL_VERSION "0.8.2"
 
 #define GREEN_LED_PIN 0 /* GPIO 25 on Pico-based prototype, 0 on a final h/w */
 
@@ -44,6 +44,7 @@ extern void usb_task(void *params);
 /* cli.c */
 extern void cli_task(void *params);
 extern volatile bool cli_connected;
+extern volatile bool cli_was_connected;
 
 /* gpio.c */
 #define GMM7550_MR_PIN     15
@@ -52,6 +53,9 @@ extern volatile bool cli_connected;
 
 #define GMM7550_MR_TIME_MS 10
 extern void cli_register_gpio(void);
+/* Exports for auto-start function */
+extern void gmm7550_on(void);
+extern void gmm7550_hreset(uint rst);
 
 /* i2c.c */
 #define GMM7550_I2C         1
@@ -66,6 +70,8 @@ extern i2c_inst_t *i2c;
 extern void gmm7550_sreset(const uint rst);
 extern void pca_write_reg(const uint8_t r, const uint8_t d);
 extern uint8_t pca_read_reg(const uint8_t r);
+/* Exports for auto-start function */
+extern void gmm7550_i2c_gpio_init(void);
 
 /* pll.c */
 extern void cli_register_pll(void);

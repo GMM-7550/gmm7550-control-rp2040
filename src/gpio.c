@@ -16,7 +16,7 @@ static void gmm7550_gpio_init(void)
   gpio_put(GMM7550_MR_PIN, 1);
 }
 
-static void gmm7550_on(void)
+void gmm7550_on(void)
 {
   gpio_put(GMM7550_EN_PIN, 1);
 }
@@ -27,7 +27,7 @@ static void gmm7550_off(void)
   i2c_gpio_initialized = false;
 }
 
-static void gmm7550_hreset(uint rst)
+void gmm7550_hreset(uint rst)
 {
   switch (rst) {
   case 0:  /* deassert */

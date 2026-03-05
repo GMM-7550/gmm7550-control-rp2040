@@ -10,9 +10,22 @@ static void usb_init(__unused void *params)
   tusb_init(0, &dev_init);
 }
 
+static void auto_start(void)
+{
+  gmm7550_on();
+  gmm7550_hreset(0);
+  vTaskDelay(100 / portTICK_PERIOD_MS);
+  gmm7550_i2c_gpio_init();
+  gmm7550_sreset(1);
+  pca_write_reg(3, 0x40); /* Connect UART Rx/Tx signals, Configuration Mode = 0 (SPI Active) */
+  vTaskDelay(GMM7550_MR_TIME_MS / portTICK_PERIOD_MS);
+  gmm7550_sreset(0);
+}
+
 void usb_task(__unused void *params)
 {
   usb_init(NULL);
+  static bool auto_start_done = false;
 
   xTaskCreate(cli_task, "CLI",
               configMINIMAL_STACK_SIZE,
@@ -29,6 +42,10 @@ void usb_task(__unused void *params)
     tud_task();
 
     if (tud_cdc_n_connected(CDC_SERIAL)) {
+      if (!cli_was_connected && !auto_start_done) {
+        auto_start();
+        auto_start_done = true;
+      };
       if (tud_cdc_n_available(CDC_SERIAL)) {
         count = tud_cdc_n_read(CDC_SERIAL, buf, sizeof(buf));
         for(int i=0; i<count; i++) {

@@ -16,6 +16,7 @@
 #define BLINK_INTERVAL_SPI_CONNECTED 100
 
 volatile bool cli_connected;
+volatile bool cli_was_connected;
 volatile bool spi_connected;
 
 void blink_task(__unused void *params)
@@ -43,6 +44,7 @@ void blink_task(__unused void *params)
 int main(void)
 {
   cli_connected = false;
+  cli_was_connected = false;
   spi_connected = false;
 
   serial_init(NULL);
