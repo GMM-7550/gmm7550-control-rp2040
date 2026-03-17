@@ -68,7 +68,7 @@ static void jtag_task(__unused void *params)
       //If tud_task() is called and tud_vendor_read isn't called immediately (i.e before calling tud_task again)
       //after there is data available, there is a risk that data from 2 BULK OUT transaction will be (partially) combined into one
       //The DJTAG protocol does not tolerate this.
-      // tud_task();// tinyusb device task
+      tud_task();// tinyusb device task
       if (tud_vendor_available()) {
         uint bnum = wr_buffer_number;
         uint count = tud_vendor_read(buffer_infos[wr_buffer_number].buffer, 64);
@@ -109,7 +109,7 @@ void gmm7550_jtag_init(void)
   xTaskCreate(jtag_task, "JTAG",
               configMINIMAL_STACK_SIZE,
               NULL,
-              (tskIDLE_PRIORITY + 2UL),
+              (tskIDLE_PRIORITY + 3UL),
               NULL
               );
 }

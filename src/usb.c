@@ -39,8 +39,6 @@ void usb_task(__unused void *params)
     uint32_t count;
     int c;
 
-    tud_task();
-
     if (tud_cdc_n_connected(CDC_SERIAL)) {
       if (!cli_was_connected && !auto_start_done) {
         auto_start();
