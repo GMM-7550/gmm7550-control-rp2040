@@ -11,8 +11,9 @@ static spi_inst_t *spi = SPI_INSTANCE(GMM7550_SPI);
 static uint8_t spi_tx_buf[SPI_BUFFER_SIZE];
 static uint8_t spi_rx_buf[SPI_BUFFER_SIZE];
 
-static void spi_task()
+static void spi_task(void *dummy)
 {
+  (void) dummy;
   uint32_t len;
 
   while(1) {
