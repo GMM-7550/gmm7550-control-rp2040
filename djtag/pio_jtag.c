@@ -303,5 +303,5 @@ void jtag_set_clk(const pio_jtag_inst_t *jtag, bool value)
 
 bool jtag_get_tdo(const pio_jtag_inst_t *jtag)
 {
-    return last_tdo;
+    return gpio_get(jtag->pin_tdo);
 }
