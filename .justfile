@@ -25,6 +25,9 @@ default_baud := "115200"
 com baud=default_baud:
   picocom -q -b {{baud}} /dev/ttyACM0
 
+term:
+  litex_term --serial-boot --kernel ../../../zephyr/gmm7550-zephyr/build/zephyr/zephyr.bin /dev/ttyACM0
+
 # connect to RP2040 CLI (control interface)
 cli:
   picocom -q -b 115200 /dev/ttyACM1
