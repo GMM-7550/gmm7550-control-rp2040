@@ -72,7 +72,8 @@ static inline void jtag_set_trst(const pio_jtag_inst_t *jtag, bool value)
 // The following APIs assume that they are called in the following order:
 // jtag_set_XXX where XXX is any pin. if XXX is clk it needs to be false
 // jtag_set_clk where clk is true This will initiate a one cycle pio_jtag_write_read_blocking
-// possibly jtag_get_tdo which will get what was read during the previous step
+// possibly jtag_get_tdo which returns the current TDO pin level (i.e. after the
+// trailing TCK edge); use CMD_CLK with READOUT to get TDO sampled on the leading edge
 void jtag_set_tdi(const pio_jtag_inst_t *jtag, bool value);
 
 void jtag_set_clk(const pio_jtag_inst_t *jtag, bool value);
