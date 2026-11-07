@@ -20,9 +20,15 @@ inline int serial_getc_us(void)
 
 void serial_set_line_coding(cdc_line_coding_t const* p)
 {
+  /* CDC: stop_bits 0 = 1, 1 = 1.5, 2 = 2; parity 0 none, 1 odd, 2 even, 3 mark, 4 space */
+  uint stop_bits = (p->stop_bits == 2) ? 2 : 1;
+  uint data_bits = (p->data_bits >= 5 && p->data_bits <= 8) ? p->data_bits : 8;
+  uart_parity_t parity = (p->parity == 1) ? UART_PARITY_ODD :
+                         (p->parity == 2) ? UART_PARITY_EVEN : UART_PARITY_NONE;
+
   uart_tx_wait_blocking(uart);
   (void) uart_set_baudrate(uart, p->bit_rate);
-  uart_set_format(uart, p->data_bits, p->stop_bits, p->parity);
+  uart_set_format(uart, data_bits, stop_bits, parity);
 }
 
 void serial_init(__unused void *params)
