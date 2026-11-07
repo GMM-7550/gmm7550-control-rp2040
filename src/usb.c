@@ -52,7 +52,7 @@ void usb_task(__unused void *params)
       }
       count = 0;
       for (int i=0; i<SERIAL_BUFFER_SIZE; i++) {
-        if ((c = serial_getc_us()) > 0) {
+        if ((c = serial_getc_us()) >= 0) {
           buf[i] = c;
           count++;
         } else {
